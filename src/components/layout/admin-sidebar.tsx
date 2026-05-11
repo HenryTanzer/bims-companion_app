@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, GraduationCap, BookOpen } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { LayoutDashboard, Users, GraduationCap, BookOpen, UserCircle, LogOut } from 'lucide-react'
 import Image from 'next/image'
+import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
@@ -13,9 +14,17 @@ const navItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClient()
 
   function isActive(href: string, exact?: boolean) {
     return exact ? pathname === href : pathname.startsWith(href)
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
   }
 
   return (
@@ -49,9 +58,8 @@ export function AdminSidebar() {
         ))}
       </nav>
 
-      {/* Portal switcher */}
+      {/* Bottom section: portal switcher + profile + sign out */}
       <div className="p-3 border-t border-border space-y-1">
-        <p className="text-xs text-muted-foreground px-3 pb-1">Switch portal</p>
         <Link
           href="/teacher"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -59,6 +67,20 @@ export function AdminSidebar() {
           <BookOpen className="w-4 h-4 shrink-0" />
           Teacher portal
         </Link>
+        <Link
+          href="/teacher/profile"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        >
+          <UserCircle className="w-4 h-4 shrink-0" />
+          Profile
+        </Link>
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors w-full"
+        >
+          <LogOut className="w-4 h-4 shrink-0" />
+          Sign out
+        </button>
       </div>
     </aside>
   )
