@@ -4,6 +4,7 @@ import { StudentSidebar } from '@/components/layout/student-sidebar'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { OfflineSync } from '@/components/shared/offline-sync'
 import { OfflineQueueSync } from '@/components/shared/offline-queue-sync'
+import { TutorialController } from '@/components/shared/tutorial-controller'
 import { Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -27,6 +28,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
       <StudentSidebar />
       <OfflineSync studentId={user.id} />
       <OfflineQueueSync />
+      <TutorialController portal="student" />
       <div className="flex flex-col flex-1 min-w-0">
         {/* Top bar */}
         <header className="flex items-center justify-between px-6 py-3 border-b border-border bg-card/50 backdrop-blur sticky top-0 z-10">

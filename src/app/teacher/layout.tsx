@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { TeacherSidebar } from '@/components/layout/teacher-sidebar'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
+import { TutorialController } from '@/components/shared/tutorial-controller'
 import { Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -26,6 +27,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   return (
     <div className="flex min-h-screen bg-background">
       <TeacherSidebar />
+      <TutorialController portal="teacher" />
       <div className="flex flex-col flex-1 min-w-0">
         <header className="flex items-center justify-between px-6 py-3 border-b border-border bg-card/50 backdrop-blur sticky top-0 z-10">
           <div />
