@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Home, PenSquare, Users, FileText, BarChart2, MessageSquare, LogOut, UserCircle, Layers } from 'lucide-react'
+import { Home, PenSquare, Users, FileText, BarChart2, MessageSquare, LogOut, UserCircle, Layers, Shield } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
@@ -17,7 +17,7 @@ const navItems = [
   { href: '/teacher/messages', label: 'Messages', icon: MessageSquare, tutorial: 'nav-messages' },
 ]
 
-export function TeacherSidebar() {
+export function TeacherSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -63,6 +63,15 @@ export function TeacherSidebar() {
       </nav>
 
       <div className="px-3 pb-4 border-t border-border pt-3 space-y-1">
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <Shield className="w-4 h-4 shrink-0" />
+            Admin portal
+          </Link>
+        )}
         <Link
           href="/teacher/profile"
           data-tutorial="nav-profile"

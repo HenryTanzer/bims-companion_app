@@ -26,7 +26,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
 
   return (
     <div className="flex min-h-screen bg-background">
-      <TeacherSidebar />
+      <TeacherSidebar isAdmin={role === 'admin'} />
       <TutorialController portal="teacher" />
       <div className="flex flex-col flex-1 min-w-0">
         <header className="flex items-center justify-between px-6 py-3 border-b border-border bg-card/50 backdrop-blur sticky top-0 z-10">
