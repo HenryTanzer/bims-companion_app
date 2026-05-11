@@ -87,14 +87,42 @@ All XP/streak/level updates go through `src/lib/progress.ts` → `updateStudentP
 
 ---
 
+### School Logo
+**Where:** `public/logo.png` — referenced in login page, signup page, student sidebar, teacher sidebar.
+**Rendering:** Wrapped in `bg-white rounded-xl p-0.5` container so the black line-art logo is always visible regardless of dark/light theme.
+**Status:** Code in place. Image file must be manually saved to `public/logo.png` before it displays. *(not yet done)*
+
+### PWA / Offline Support: Three-Phase Plan (agreed, not yet built)
+**Why:** School environment may have unreliable connectivity. Students need access to exam questions, flashcards, and revision content offline. Completed work (quiz results, module answers) should queue locally and sync when reconnected.
+
+**Phase 1 — PWA Foundation:**
+- Package: `@ducanh2912/next-pwa` (best-maintained for Next.js App Router)
+- Adds: `manifest.json`, service worker, app shell caching
+- Students/teachers can install to home screen; graceful offline screen instead of browser error
+
+**Phase 2 — Offline Data Reads:**
+- Storage: IndexedDB (via `idb` library)
+- On login: fetch and cache quiz questions, flashcards, module content for enrolled subjects
+- Quiz and flashcard pages read from IndexedDB when offline
+- PDFs cached by service worker when first opened
+
+**Phase 3 — Offline Writes + Background Sync:**
+- Quiz results, flashcard reviews, module submissions queued to IndexedDB when offline
+- On reconnect: Background Sync API (or reconnection detection) pushes queue to Supabase
+- Student sees immediate local save; sync is silent
+
+**Offline-only features (acceptable):** Study Buddy, Leaderboard, Analytics, Teacher content creation.
+
+---
+
 ## Decisions Still Pending
 
 | Decision | Options | Notes |
 |---|---|---|
 | Email confirmation | Enable for production or keep off | Off now for dev convenience; unverified current state in production |
 | Anthropic account | Personal vs. dedicated school account | Personal used currently; school account recommended before sharing with students |
-| Admin portal | Build full admin UI vs. manage via Supabase dashboard | No admin pages exist yet |
+| Custom domain | School domain vs. Vercel subdomain | Not set up; Vercel → Settings → Domains when ready |
+| Admin portal | Build full admin UI (agreed) | `admin` role exists in DB. Interim: create admins manually via Supabase → profiles table. Portal to include user management, invite system, school-wide analytics, content oversight. |
 | Type generation | Manual types vs. `supabase gen types` | Manual now; generated types would remove `as any` casts |
-| Offline / PWA | Add service worker + manifest for offline use | Not started; relevant for school environments with poor connectivity |
 | Teacher messages design | One-to-one vs. broadcast to subject group | Not designed; stub page only |
 | Review / Weak areas design | Surface by topic, by question, or by score threshold | Not designed yet |

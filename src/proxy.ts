@@ -27,7 +27,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes — allow unauthenticated
-  const publicRoutes = ['/login', '/signup']
+  const publicRoutes = ['/login', '/signup', '/forgot-password', '/reset-password']
   if (publicRoutes.includes(pathname)) {
     if (user) {
       return redirectByRole(request, supabase, user.id)
@@ -49,6 +49,8 @@ export async function proxy(request: NextRequest) {
 
   if (profile) {
     const role = (profile as any).role
+    // Admins can access all portals — no redirect
+    if (role === 'admin') return supabaseResponse
     if (pathname.startsWith('/teacher') && role === 'student') {
       return NextResponse.redirect(new URL('/student', request.url))
     }
@@ -68,7 +70,7 @@ async function redirectByRole(request: NextRequest, supabase: any, userId: strin
     .single()
 
   const role = (profile as any)?.role ?? 'student'
-  const destination = role === 'teacher' ? '/teacher' : '/student'
+  const destination = role === 'teacher' || role === 'admin' ? '/teacher' : '/student'
   return NextResponse.redirect(new URL(destination, request.url))
 }
 

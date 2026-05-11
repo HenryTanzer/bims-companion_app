@@ -28,8 +28,26 @@ export function ProfileForm({
   const supabase = createClient()
   const [name, setName] = useState(profile.full_name)
   const [saving, setSaving] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
 
   const unchanged = name.trim() === profile.full_name
+
+  async function handlePasswordChange() {
+    if (newPassword.length < 8) { toast.error('Password must be at least 8 characters'); return }
+    if (newPassword !== confirmPassword) { toast.error('Passwords do not match'); return }
+    setSavingPassword(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    if (error) {
+      toast.error('Failed to update password')
+    } else {
+      toast.success('Password updated')
+      setNewPassword('')
+      setConfirmPassword('')
+    }
+    setSavingPassword(false)
+  }
 
   async function handleSave() {
     const trimmed = name.trim()
@@ -126,6 +144,44 @@ export function ProfileForm({
           <Button onClick={handleSave} disabled={saving || unchanged} className="gap-2">
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             {saving ? 'Saving…' : 'Save changes'}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Change password */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Change password</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">New password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              placeholder="Min. 8 characters"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Confirm new password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              placeholder="Repeat new password"
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <Button
+            onClick={handlePasswordChange}
+            disabled={savingPassword || !newPassword || !confirmPassword}
+            variant="outline"
+            className="gap-2"
+          >
+            {savingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
+            {savingPassword ? 'Updating…' : 'Update password'}
           </Button>
         </CardContent>
       </Card>

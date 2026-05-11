@@ -170,10 +170,12 @@ ANTHROPIC_API_KEY
 - Subject changed from Geography to Business across all code and live database
 - TypeScript passing clean (`tsc --noEmit` no errors) ✅
 - Deployed to Vercel ✅
+- School logo added to login page, signup page, student sidebar, teacher sidebar — code done; requires `public/logo.png` to be present *(see below)*
 
 ---
 
 ## What Is Broken, Unknown, or Unverified
+- **ACTION REQUIRED:** `public/logo.png` must be saved manually — the logo code is in place but the image file has not been added to the `public/` folder yet. App will show a broken image until this is done.
 - **UNVERIFIED:** Study Buddy in production — Anthropic credits not yet added; feature will error until billing is set up at console.anthropic.com
 - **UNVERIFIED:** Modules system end-to-end — tables exist but not manually tested (teacher create/publish, student attempt/submit, gradebook)
 - **UNVERIFIED:** Exam Centre PDF upload in production — bucket exists but upload flow not tested on live site
@@ -182,6 +184,8 @@ ANTHROPIC_API_KEY
 - **UNVERIFIED:** Streak increment works across real days (logic is in `progress.ts` but not tested over time)
 - **UNVERIFIED:** `lessons_this_week` Monday reset (logic exists, never tested across a week boundary)
 - **Known cosmetic issue:** Student names show as "Unknown" in teacher analytics when quiz attempts exist but profile rows are missing — dev data issue, not a code bug; will resolve with real signups
+- **Not built:** PWA offline support (planned in 3 phases — see PROJECT_DECISIONS.md)
+- **Not built:** Admin portal — `admin` role exists in DB but no portal page. Interim: manage admins via Supabase dashboard (change `role` to `admin` in profiles table directly). Portal planned with user management, invite system, school-wide analytics.
 - **Not built:** Teacher messages page (stub only)
 - **Not built:** Student notifications
 - **Not built:** Review / Weak areas (student tool)
@@ -221,16 +225,20 @@ Students select their subjects **once at signup**. They cannot change subjects t
 8. **Next.js 16 dynamic params** — `params` is now a `Promise`. Always `const { id } = await params` in async server components. Pattern: `params: Promise<{ id: string }>`.
 9. **Vercel Root Directory** — Must be empty (not `./` with a value, not a subdirectory path). The repo root is the app root.
 10. **Redeploy after env var changes** — Changing env vars in Vercel Settings does not auto-redeploy. Must manually redeploy or push a new commit.
+11. **School logo** — Image is at `public/logo.png`. Used in login, signup, student sidebar, teacher sidebar. White rounded container (`bg-white rounded-xl p-0.5`) ensures visibility in dark mode.
 
 ---
 
 ## Exact Next Steps for Next Session
-1. **Add Anthropic credits** — console.anthropic.com → Billing → add card + credits. Then test Study Buddy on live site.
-2. **Test Modules end-to-end on live site** — teacher creates module, publishes it, student attempts and submits, teacher views gradebook
-3. **Test Exam Centre PDF upload on live site**
-4. **Verify email confirmation is off** — Supabase → Auth → Providers → Email → "Confirm email" toggle
-5. **Build teacher messages / student notifications**
-6. **Consider switching Anthropic key to school account** when ready for full production use
+1. **Save `public/logo.png`** — copy the school logo image into `C:\Users\Henry Tanzer\Documents\bims-companion\public\` as `logo.png`, then `git add . && git commit -m "Add school logo" && git push`
+2. **Add Anthropic credits** — console.anthropic.com → Billing → add card + credits. Then test Study Buddy on live site.
+3. **Verify email confirmation is off** — Supabase → Auth → Providers → Email → "Confirm email" toggle
+4. **Build PWA Phase 1** — manifest.json, service worker via `@ducanh2912/next-pwa`, app shell caching, install prompt
+5. **Build PWA Phase 2** — IndexedDB caching of quiz questions, flashcards, module content on login; offline reads
+6. **Build PWA Phase 3** — offline write queue for quiz results, flashcard reviews, module submissions; background sync
+7. **Test Modules end-to-end on live site**
+8. **Build teacher messages / student notifications**
+9. **Consider switching Anthropic key to school account** when ready for full production use
 
 ---
 
