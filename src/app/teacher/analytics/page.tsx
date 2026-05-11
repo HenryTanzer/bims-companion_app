@@ -4,38 +4,67 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { TrendingUp, Users, Brain, Zap } from 'lucide-react'
+import { getTeacherContext } from '@/lib/teacher-subjects'
 
 export default async function TeacherAnalytics() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [attemptsRes, studentsRes, subjectsRes, progressRes] = await Promise.all([
-    supabase.from('quiz_attempts').select('student_id, subject_id, score, total_questions, completed_at').order('completed_at', { ascending: false }),
+  const { subjectIds, isAdmin } = await getTeacherContext(supabase, user.id)
+
+  const [attemptsRes, studentsRes, subjectsRes, progressRes, enrollmentsRes] = await Promise.all([
+    isAdmin
+      ? supabase.from('quiz_attempts').select('student_id, subject_id, score, total_questions, completed_at').order('completed_at', { ascending: false })
+      : subjectIds.length > 0
+        ? supabase.from('quiz_attempts').select('student_id, subject_id, score, total_questions, completed_at').in('subject_id', subjectIds).order('completed_at', { ascending: false })
+        : Promise.resolve({ data: [] }),
     supabase.from('profiles').select('id, full_name').eq('role', 'student'),
-    supabase.from('subjects').select('id, name, color'),
+    isAdmin
+      ? supabase.from('subjects').select('id, name, color')
+      : subjectIds.length > 0
+        ? supabase.from('subjects').select('id, name, color').in('id', subjectIds)
+        : Promise.resolve({ data: [] }),
     supabase.from('user_progress').select('student_id, xp, lessons_this_week'),
+    isAdmin
+      ? Promise.resolve({ data: [] })
+      : subjectIds.length > 0
+        ? supabase.from('enrollments').select('student_id').in('subject_id', subjectIds)
+        : Promise.resolve({ data: [] }),
   ])
 
-  const attempts = (attemptsRes.data ?? []) as any[]
-  const students = (studentsRes.data ?? []) as any[]
+  const allAttempts = (attemptsRes.data ?? []) as any[]
+  const allStudents = (studentsRes.data ?? []) as any[]
   const subjects = (subjectsRes.data ?? []) as any[]
   const allProgress = (progressRes.data ?? []) as any[]
+
+  // Scope students to teacher's unit (or all for admin)
+  const unitStudentIds = isAdmin
+    ? null
+    : [...new Set((enrollmentsRes.data ?? []).map((e: any) => e.student_id as string))]
+
+  const students = unitStudentIds === null
+    ? allStudents
+    : allStudents.filter((s: any) => unitStudentIds.includes(s.id))
+
+  const unitProgress = unitStudentIds === null
+    ? allProgress
+    : allProgress.filter((p: any) => unitStudentIds.includes(p.student_id))
 
   const studentMap = new Map(students.map((s: any) => [s.id, s.full_name]))
   const subjectMap = new Map(subjects.map((s: any) => [s.id, s]))
 
   // Summary stats
-  const totalAttempts = attempts.length
+  const totalAttempts = allAttempts.length
   const avgScore = totalAttempts > 0
-    ? Math.round(attempts.reduce((acc, a) => acc + (a.score / a.total_questions) * 100, 0) / totalAttempts)
+    ? Math.round(allAttempts.reduce((acc, a) => acc + (a.score / a.total_questions) * 100, 0) / totalAttempts)
     : 0
-  const totalXP = allProgress.reduce((acc: number, p: any) => acc + (p.xp ?? 0), 0)
-  const activeThisWeek = allProgress.filter((p: any) => (p.lessons_this_week ?? 0) > 0).length
+  const totalXP = unitProgress.reduce((acc: number, p: any) => acc + (p.xp ?? 0), 0)
+  const activeThisWeek = unitProgress.filter((p: any) => (p.lessons_this_week ?? 0) > 0).length
 
   // Per-subject breakdown
   const subjectStats = new Map<string, { attempts: number; totalPct: number }>()
-  for (const a of attempts) {
+  for (const a of allAttempts) {
     const prev = subjectStats.get(a.subject_id) ?? { attempts: 0, totalPct: 0 }
     subjectStats.set(a.subject_id, {
       attempts: prev.attempts + 1,
@@ -53,9 +82,10 @@ export default async function TeacherAnalytics() {
     }
   }).sort((a, b) => b.attempts - a.attempts)
 
-  // Top performers (min 3 attempts)
+  // Top performers (min 3 attempts, scoped to unit students)
   const studentAttemptMap = new Map<string, { total: number; scoreSum: number; count: number }>()
-  for (const a of attempts) {
+  for (const a of allAttempts) {
+    if (unitStudentIds !== null && !unitStudentIds.includes(a.student_id)) continue
     const prev = studentAttemptMap.get(a.student_id) ?? { total: 0, scoreSum: 0, count: 0 }
     studentAttemptMap.set(a.student_id, {
       total: prev.total + a.total_questions,
@@ -75,7 +105,7 @@ export default async function TeacherAnalytics() {
     .slice(0, 5)
 
   // Recent activity (last 15)
-  const recentActivity = attempts.slice(0, 15).map((a: any) => ({
+  const recentActivity = allAttempts.slice(0, 15).map((a: any) => ({
     studentName: studentMap.get(a.student_id) ?? 'Unknown',
     subject: (subjectMap.get(a.subject_id) as any)?.name ?? '—',
     score: a.score,
@@ -95,7 +125,7 @@ export default async function TeacherAnalytics() {
     <div className="max-w-5xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold">Analytics</h1>
-        <p className="text-muted-foreground text-sm mt-1">School-wide quiz performance and student activity.</p>
+        <p className="text-muted-foreground text-sm mt-1">Quiz performance and student activity in your unit.</p>
       </div>
 
       {/* Summary stats */}

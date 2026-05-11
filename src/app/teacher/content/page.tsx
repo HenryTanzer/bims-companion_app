@@ -1,15 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ContentManager } from '@/components/teacher/content-manager'
+import { getTeacherContext } from '@/lib/teacher-subjects'
 
 export default async function ContentPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { subjectIds, isAdmin } = await getTeacherContext(supabase, user.id)
+
   const [subjectsRes, topicsRes] = await Promise.all([
-    supabase.from('subjects').select('id, name'),
-    supabase.from('topics').select('id, subject_id, name').order('order_index'),
+    isAdmin
+      ? supabase.from('subjects').select('id, name')
+      : subjectIds.length > 0
+        ? supabase.from('subjects').select('id, name').in('id', subjectIds)
+        : Promise.resolve({ data: [] }),
+    isAdmin
+      ? supabase.from('topics').select('id, subject_id, name').order('order_index')
+      : subjectIds.length > 0
+        ? supabase.from('topics').select('id, subject_id, name').in('subject_id', subjectIds).order('order_index')
+        : Promise.resolve({ data: [] }),
   ])
 
   return (
@@ -19,8 +30,8 @@ export default async function ContentPage() {
         <p className="text-muted-foreground text-sm mt-1">Add quiz questions, flashcards, and topics for your students.</p>
       </div>
       <ContentManager
-        subjects={subjectsRes.data ?? []}
-        topics={topicsRes.data ?? []}
+        subjects={(subjectsRes.data ?? []) as any[]}
+        topics={(topicsRes.data ?? []) as any[]}
         teacherId={user.id}
       />
     </div>

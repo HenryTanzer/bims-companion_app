@@ -5,11 +5,15 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { StudentEnroller } from '@/components/teacher/student-enroller'
+import { getTeacherContext } from '@/lib/teacher-subjects'
 
 export default async function StudentsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const teacherCtx = await getTeacherContext(supabase, user.id)
+  const { subjectIds, isAdmin } = teacherCtx
 
   const [studentsRes, progressRes, attemptsRes, enrollmentsRes, subjectsRes] = await Promise.all([
     supabase.from('profiles').select('id, full_name, email').eq('role', 'student').order('full_name'),
@@ -19,12 +23,31 @@ export default async function StudentsPage() {
     supabase.from('subjects').select('id, name'),
   ])
 
-  const students = (studentsRes.data ?? []) as any[]
   const allSubjects = (subjectsRes.data ?? []) as any[]
+  const allEnrollments = (enrollmentsRes.data ?? []) as any[]
+
+  // Subjects this teacher can manage (for the enroller panel)
+  const managedSubjects = isAdmin
+    ? allSubjects
+    : allSubjects.filter((s: any) => subjectIds.includes(s.id))
+
+  // Student IDs enrolled in this teacher's subjects
+  const studentIdsInUnit = isAdmin
+    ? null // null = all students
+    : [...new Set(
+        allEnrollments
+          .filter((e: any) => subjectIds.includes(e.subject_id))
+          .map((e: any) => e.student_id as string)
+      )]
+
+  let students = (studentsRes.data ?? []) as any[]
+  if (studentIdsInUnit !== null) {
+    students = students.filter((s: any) => studentIdsInUnit.includes(s.id))
+  }
 
   const progressMap = new Map((progressRes.data ?? []).map((p: any) => [p.student_id, p]))
   const enrollmentMap = new Map<string, string[]>()
-  for (const e of (enrollmentsRes.data ?? []) as any[]) {
+  for (const e of allEnrollments) {
     const prev = enrollmentMap.get(e.student_id) ?? []
     enrollmentMap.set(e.student_id, [...prev, e.subject_id])
   }
@@ -44,7 +67,7 @@ export default async function StudentsPage() {
       <div>
         <h1 className="text-2xl font-bold">Students</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          {students.length} student{students.length !== 1 ? 's' : ''} registered.
+          {students.length} student{students.length !== 1 ? 's' : ''} in your unit.
           Expand a student to manage their subject enrolments.
         </p>
       </div>
@@ -52,7 +75,7 @@ export default async function StudentsPage() {
       {students.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            No students yet. Students will appear here once they sign up.
+            No students enrolled in your unit yet.
           </CardContent>
         </Card>
       ) : (
@@ -80,10 +103,10 @@ export default async function StudentsPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm">{s.full_name}</p>
                       <p className="text-xs text-muted-foreground truncate">{s.email}</p>
-                      {/* Enrolled subject pills */}
+                      {/* Show all enrolled subjects as read-only badges */}
                       {enrolledIds.length > 0 && (
                         <div className="flex gap-1.5 flex-wrap mt-1.5">
-                          {allSubjects.filter(sub => enrolledIds.includes(sub.id)).map((sub: any) => (
+                          {allSubjects.filter((sub: any) => enrolledIds.includes(sub.id)).map((sub: any) => (
                             <Badge key={sub.id} variant="secondary" className="text-xs py-0 px-2">
                               {sub.name}
                             </Badge>
@@ -115,11 +138,11 @@ export default async function StudentsPage() {
 
                   <Progress value={xp % 100} className="h-1 mt-3" />
 
-                  {/* Teacher enrolment manager */}
+                  {/* Enrolment manager scoped to teacher's subjects */}
                   <StudentEnroller
                     studentId={s.id}
                     studentName={s.full_name}
-                    allSubjects={allSubjects}
+                    allSubjects={managedSubjects}
                     initialEnrolledIds={enrolledIds}
                   />
                 </CardContent>

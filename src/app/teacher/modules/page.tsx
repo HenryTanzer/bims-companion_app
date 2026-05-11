@@ -1,26 +1,33 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { ModuleManager } from '@/components/teacher/module-manager'
+import { getTeacherContext } from '@/lib/teacher-subjects'
 
 export default async function TeacherModulesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { subjectIds, isAdmin } = await getTeacherContext(supabase, user.id)
+
   const [subjectsRes, modulesRes, questionsRes] = await Promise.all([
-    supabase.from('subjects').select('id, name, color'),
+    isAdmin
+      ? supabase.from('subjects').select('id, name, color')
+      : subjectIds.length > 0
+        ? supabase.from('subjects').select('id, name, color').in('id', subjectIds)
+        : Promise.resolve({ data: [] }),
     (supabase as any)
       .from('modules')
       .select('id, title, description, due_date, is_published, subject_id, subjects(name), created_by')
       .eq('created_by', user.id)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('quiz_questions')
-      .select('id, question, options, correct_answer, subject_id, difficulty, topics(name)')
-      .order('created_at', { ascending: false }),
+    isAdmin
+      ? supabase.from('quiz_questions').select('id, question, options, correct_answer, subject_id, difficulty, topics(name)').order('created_at', { ascending: false })
+      : subjectIds.length > 0
+        ? supabase.from('quiz_questions').select('id, question, options, correct_answer, subject_id, difficulty, topics(name)').in('subject_id', subjectIds).order('created_at', { ascending: false })
+        : Promise.resolve({ data: [] }),
   ])
 
-  // Get question counts per module
   const moduleIds = ((modulesRes.data ?? []) as any[]).map((m: any) => m.id)
   const { data: mqRows } = moduleIds.length
     ? await (supabase as any)
@@ -34,7 +41,6 @@ export default async function TeacherModulesPage() {
     qCountByModule[row.module_id] = (qCountByModule[row.module_id] ?? 0) + 1
   }
 
-  // Get submission counts per module (for gradebook badge)
   const { data: subCounts } = moduleIds.length
     ? await (supabase as any)
         .from('module_submissions')

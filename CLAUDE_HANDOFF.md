@@ -48,39 +48,46 @@ src/
     offline/page.tsx              — Offline fallback page ✅
     api/
       study-buddy/route.ts        — POST route: streams Claude Haiku, strict subject-only guardrails ✅
+      extract-questions/route.ts  — POST route: fetches PDF, sends to Claude Sonnet, returns MCQ array ✅ (UNVERIFIED — needs Anthropic credits)
+      daily-challenge/route.ts    — POST route: server-side answer check, XP award, inserts attempt ✅ (UNVERIFIED — needs supabase-daily-challenge.sql run first)
     student/
-      layout.tsx                  — Student layout (sidebar + topbar + OfflineSync + OfflineQueueSync)
-      page.tsx                    — Student dashboard (XP, streak, tiles, read-only subject badges)
+      layout.tsx                  — Student layout (sidebar + topbar + OfflineSync + OfflineQueueSync + TutorialController)
+      page.tsx                    — Student dashboard (XP, streak, tiles, Daily Challenge quick link) ✅
       quiz/page.tsx               — Quiz page (full MCQ flow, XP rewards) ✅
       flashcards/page.tsx         — Flashcards page (3D flip, spaced rep) ✅
       exam-center/page.tsx        — Exam Centre (lists past papers by enrolled subject, opens PDF) ✅
       progress/page.tsx           — Progress analytics (XP bar, stats, per-subject scores, quiz history) ✅
       leaderboard/page.tsx        — Top 25 by XP, medals for top 3, current user highlighted ✅
       study-buddy/page.tsx        — AI chat tutor (subject-aware, streams Claude Haiku) ✅
-      profile/page.tsx            — Profile page (edit display name, change password) ✅
+      profile/page.tsx            — Profile page (edit display name, change password, relaunch tutorial) ✅
       modules/page.tsx            — Lists published modules for enrolled subjects ✅
       modules/[id]/page.tsx       — Individual module attempt page (Next.js 16 async params) ✅
+      daily-challenge/page.tsx    — Daily Challenge (one question/day, +35 XP correct) ✅ (UNVERIFIED — needs SQL)
+      review/page.tsx             — Review / Weak Areas (surfaces recently-wrong questions) ✅ (UNVERIFIED)
+      notifications/page.tsx      — Student notifications / teacher announcements ✅ (UNVERIFIED)
     teacher/
-      layout.tsx                  — Teacher layout (sidebar + topbar, role guard)
+      layout.tsx                  — Teacher layout (sidebar + topbar, role guard + TutorialController)
       page.tsx                    — Teacher dashboard (stats, quick actions) ✅
       content/page.tsx            — Content manager (quiz Qs, flashcards, topics) ✅
       students/page.tsx           — Student list with XP/streak/quiz stats + enrolment manager ✅
-      exam-center/page.tsx        — Exam Centre (upload PDFs, list all papers, delete) ✅
+      exam-center/page.tsx        — Exam Centre (upload PDFs, list all papers, AI extraction) ✅
       modules/page.tsx            — Module manager (create, publish, gradebook) ✅
       analytics/page.tsx          — Analytics dashboard (summary stats, per-subject, top performers, recent activity) ✅
-      messages/page.tsx           — Announcement broadcast (send to subject group or all) ✅
+      messages/page.tsx           — Announcement broadcast (send to subject group or all) ✅ (UNVERIFIED end-to-end)
       profile/page.tsx            — Profile page (edit display name) ✅
   components/
     layout/
-      student-sidebar.tsx         — Logo, nav links including Modules + Profile ✅
-      teacher-sidebar.tsx         — Logo, nav links including Modules + Profile ✅
+      student-sidebar.tsx         — Logo, nav links with data-tutorial attributes; includes Daily Challenge, Review, Notifications ✅
+      teacher-sidebar.tsx         — Logo, nav links with data-tutorial attributes ✅
     shared/
       theme-provider.tsx
       theme-toggle.tsx
-      profile-form.tsx            — Shared profile editor + change password card ✅
+      profile-form.tsx            — Shared profile editor + change password + "Take the tour" relaunch button ✅
       service-worker-register.tsx — Registers /sw.js on mount (PWA) ✅
       offline-sync.tsx            — Caches quiz/flashcard data to IndexedDB on student login ✅
       offline-queue-sync.tsx      — Processes write queue on reconnect, shows sync toast ✅
+      tutorial-modal.tsx          — Spotlight tour modal (CSS box-shadow cutout, animated ring) ✅ (UNVERIFIED on real device)
+      tutorial-controller.tsx     — Auto-shows on first login, listens for bims:launch-tutorial event ✅
     student/
       quiz-launcher.tsx           — Full quiz engine (offline-aware: IndexedDB reads + write queue)
       flashcard-launcher.tsx      — Full flashcard engine (offline-aware: IndexedDB reads + write queue)
@@ -88,11 +95,15 @@ src/
       study-buddy-chat.tsx        — Streaming chat UI (subject pills, message thread, abort on cancel) ✅
       module-list.tsx             — Module cards with status badge (submitted/overdue/not started) ✅
       module-attempt.tsx          — Attempt UI + offline write queue for submissions ✅
+      daily-challenge-view.tsx    — Daily Challenge UI (pending/completed modes, result reveal) ✅
+      review-view.tsx             — Review UI (per-question check-answer, mastered badge, grouped by subject) ✅
+      notifications-view.tsx      — Notification cards (subject badge, teacher name, timestamp) ✅
     teacher/
       content-manager.tsx         — Tabs: Quiz Questions / Flashcards / Topics
       student-enroller.tsx        — Per-student enrolment manager (add/remove subjects inline) ✅
-      exam-center-manager.tsx     — Upload form + paper list with delete (Storage + DB) ✅
+      exam-center-manager.tsx     — Upload form + paper list + AI "Extract Qs" button + review panel + save to library ✅
       module-manager.tsx          — Create module, list with publish/unpublish/delete, gradebook per module ✅
+      messages-manager.tsx        — Compose form (audience: all/subject), sent history, delete ✅
     ui/                           — shadcn/ui components
   lib/
     supabase/
@@ -101,7 +112,7 @@ src/
     progress.ts                   — Shared XP/streak/level/lessons_this_week update utility ✅
     offline-db.ts                 — IndexedDB layer (DB: bims-offline v2, stores: quiz_questions, flashcards, write_queue) ✅
   proxy.ts                        — Auth + role-based route protection (admin bypasses all role guards)
-  types/database.ts               — Full TypeScript DB schema (manual, not generated)
+  types/database.ts               — Full TypeScript DB schema (manual, not generated); includes announcements table
 
 public/
   sw.js                           — Service worker (cache-first static, network-first navigation) ✅
@@ -109,6 +120,8 @@ public/
 
 supabase-schema.sql               — Full DB schema (run once, already executed)
 supabase-modules.sql              — Modules tables schema — ALREADY RUN ✅
+supabase-announcements.sql        — Announcements table + RLS — table already existed in DB; RLS policies already existed ✅
+supabase-daily-challenge.sql      — daily_challenge_attempts table + RLS — NOT YET RUN IN PRODUCTION ⚠️
 supabase-seed-questions.sql       — 15 sample quiz questions (IT/Business/Biology)
 supabase-seed-flashcards.sql      — 24 sample flashcards (IT/Business/Biology)
 supabase-migrate-geography-to-business.sql — Already run on live DB ✅
@@ -127,6 +140,8 @@ supabase-migrate-geography-to-business.sql — Already run on live DB ✅
 - Triggers: `handle_new_student_progress` (auto-creates user_progress row for students) ✅
 - Storage bucket `past-papers`: **CREATED** as public bucket ✅
 - `supabase-modules.sql`: **ALREADY RUN** — modules, module_questions, module_submissions tables exist in live DB ✅
+- `supabase-announcements.sql`: **Table and RLS policies already existed** in live DB when run — no action needed ✅
+- `supabase-daily-challenge.sql`: **NOT YET RUN** — `daily_challenge_attempts` table does not exist in production. Daily Challenge will 500 until this SQL is run. ⚠️
 - URL Configuration: **ACTION REQUIRED** — set Site URL to Vercel URL and add `/reset-password` to Redirect URLs in Supabase → Auth → URL Configuration (needed for password reset flow)
 
 ---
@@ -152,7 +167,7 @@ SUPABASE_SERVICE_ROLE_KEY
 ANTHROPIC_API_KEY
 ```
 
-**Note on Anthropic API key:** Currently using a personal Anthropic account. For production school use, create a dedicated school account at console.anthropic.com, generate a new key, and swap it in Vercel → Settings → Environment Variables → Redeploy.
+**Note on Anthropic API key:** Currently using a personal Anthropic account. For production school use, create a dedicated school account at console.anthropic.com, generate a new key, and swap it in Vercel → Settings → Environment Variables → Redeploy. **AI extraction and Study Buddy are broken in production until Anthropic billing credits are added.**
 
 ---
 
@@ -168,16 +183,21 @@ ANTHROPIC_API_KEY
 - Student leaderboard: top 25 by XP, gold/silver/bronze medals, current user highlighted with "(you)"
 - Student exam centre: lists past papers for enrolled subjects, grouped by year, opens PDF in new tab
 - Student study buddy: subject-aware AI chat using Claude Haiku, streaming responses, subject pill selector, strict subject-only guardrails
-- Student profile page: edit display name, read-only email/role, enrolled subjects list, **change password card** ✅
+- Student profile page: edit display name, read-only email/role, enrolled subjects list, change password card, "Take the tour" relaunch button
 - Student modules: list published modules with status badges, full attempt UI (one-at-a-time, prev/next, reveal, submit), results screen with per-question review, XP earned
+- Student daily challenge: one question per day (deterministic by date hash), +35 XP correct / +5 XP participation, one attempt per day enforced server-side, sidebar link + dashboard tile ✅ *(UNVERIFIED — supabase-daily-challenge.sql not yet run)*
+- Student review / weak areas: surfaces recently-wrong questions from last 40 attempts, inline check-answer practice, mastered badge on correct, grouped by subject ✅ *(UNVERIFIED on live site)*
+- Student notifications: lists teacher announcements filtered by enrolled subjects + global announcements ✅ *(UNVERIFIED on live site)*
 - Teacher portal: layout, sidebar, dashboard with stats
 - Teacher content manager: create quiz questions, flashcards, topics — all saved to Supabase
 - Teacher students page: lists all students with XP/streak/quiz stats, subject pills, per-student enrolment manager
-- Teacher exam centre: upload PDFs to Supabase Storage (`past-papers` bucket), save record to DB, list all papers, delete (removes from Storage + DB)
+- Teacher exam centre: upload PDFs to Supabase Storage (`past-papers` bucket), save record to DB, list all papers, delete, AI "Extract Qs" button extracts MCQs via Claude Sonnet, review panel with topic picker, save extracted questions to Content Library ✅ *(AI extraction UNVERIFIED — needs Anthropic credits)*
 - Teacher modules: create modules with question picker, publish/unpublish, delete, on-demand gradebook per module
 - Teacher analytics: summary stats (total attempts, avg score, active this week, total XP), per-subject breakdown with progress bars, top performers list, recent quiz activity feed
+- Teacher messages: compose announcements (audience: all students or specific subject), sent history with delete ✅ *(UNVERIFIED end-to-end)*
 - Teacher profile page: edit display name, read-only email/role
-- Both sidebars: school logo, nav links, highlights on active route
+- Both sidebars: school logo, nav links with `data-tutorial` attributes for spotlight tour, highlights on active route
+- Interactive onboarding tutorial: CSS box-shadow spotlight that highlights sidebar nav elements, animated ring, tooltip card, auto-shows on first login (localStorage `bims_tutorial_v1`), relaunchable from Profile → "Take the tour" button (dispatches `bims:launch-tutorial` custom event), student 11-step tour + teacher 8-step tour ✅ *(UNVERIFIED on real device)*
 - `StudentEnroller` component: teachers expand a panel per student to add/remove subject enrolments
 - Signup page: collects name, email, password, role, subject selection (students only); enrols student in selected subjects after signup — **verified working in production** ✅
 - `src/lib/progress.ts`: shared utility that handles XP, level, streak, and `lessons_this_week` in one atomic DB update
@@ -185,20 +205,26 @@ ANTHROPIC_API_KEY
 - TypeScript passing clean (`tsc --noEmit` no errors) ✅
 - Deployed to Vercel ✅
 - School logo: `public/logo.png` — confirmed working on live site ✅
-- **Forgot password page** (`/forgot-password`): sends Supabase reset email ✅
-- **Reset password page** (`/reset-password`): handles `PASSWORD_RECOVERY` event, sets new password ✅
-- **Password change on profile page**: logged-in users can change password without email flow ✅
-- **Admin access**: admin role bypasses all role guards in `proxy.ts`, lands on `/teacher` after login, can freely access both student and teacher portals ✅
-- **Study Buddy guardrails**: strict system prompt — subject-only, refuses off-topic with fixed message, ignores persona changes/prompt injection ✅
-- **PWA Phase 1**: `src/app/manifest.ts` (native Next.js 16 manifest), `public/sw.js` (service worker), `src/app/offline/page.tsx`, `src/components/shared/service-worker-register.tsx` — app is installable to home screen ✅
-- **PWA Phase 2**: `src/lib/offline-db.ts` (IndexedDB, DB: `bims-offline` v2), `src/components/shared/offline-sync.tsx` — quiz questions and flashcards cached to IndexedDB on student login; offline reads work in quiz and flashcard launchers ✅
-- **PWA Phase 3**: write queue in IndexedDB (`write_queue` store), `src/components/shared/offline-queue-sync.tsx` — offline quiz results, flashcard reviews, and module submissions are queued and silently synced on reconnect ✅
+- Forgot password page (`/forgot-password`): sends Supabase reset email ✅
+- Reset password page (`/reset-password`): handles `PASSWORD_RECOVERY` event, sets new password ✅
+- Password change on profile page: logged-in users can change password without email flow ✅
+- Admin access: admin role bypasses all role guards in `proxy.ts`, lands on `/teacher` after login, can freely access both student and teacher portals ✅
+- Study Buddy guardrails: strict system prompt — subject-only, refuses off-topic with fixed message, ignores persona changes/prompt injection ✅
+- PWA Phase 1: `src/app/manifest.ts` (native Next.js 16 manifest), `public/sw.js` (service worker), `src/app/offline/page.tsx`, `src/components/shared/service-worker-register.tsx` — app is installable to home screen ✅
+- PWA Phase 2: `src/lib/offline-db.ts` (IndexedDB, DB: `bims-offline` v2), `src/components/shared/offline-sync.tsx` — quiz questions and flashcards cached to IndexedDB on student login; offline reads work in quiz and flashcard launchers ✅
+- PWA Phase 3: write queue in IndexedDB (`write_queue` store), `src/components/shared/offline-queue-sync.tsx` — offline quiz results, flashcard reviews, and module submissions are queued and silently synced on reconnect ✅
 
 ---
 
 ## What Is Broken, Unknown, or Unverified
+- **ACTION REQUIRED (manual):** Run `supabase-daily-challenge.sql` in Supabase SQL editor. The `daily_challenge_attempts` table does not exist in production — Daily Challenge will return 500 errors until this is done.
 - **ACTION REQUIRED (manual):** Supabase → Auth → URL Configuration → set Site URL to Vercel URL, add `/reset-password` to Redirect URLs. Password reset emails will not redirect correctly until this is done.
-- **ACTION REQUIRED (manual):** Add Anthropic billing credits at console.anthropic.com → Billing. Study Buddy is broken in production until this is done.
+- **ACTION REQUIRED (manual):** Add Anthropic billing credits at console.anthropic.com → Billing. Study Buddy and AI question extraction are broken in production until this is done.
+- **UNVERIFIED:** Daily Challenge — end-to-end on live site (requires supabase-daily-challenge.sql above)
+- **UNVERIFIED:** AI question extraction from past papers (`/api/extract-questions`) — requires Anthropic credits
+- **UNVERIFIED:** Teacher announcements / student notifications — RLS policies already existed when SQL was run; confirm the feature works end-to-end
+- **UNVERIFIED:** Review / Weak Areas — code deployed, not yet tested on live site with real attempt data
+- **UNVERIFIED:** Tutorial spotlight — code deployed, not yet tested on a real device/browser
 - **UNVERIFIED:** Password reset flow end-to-end (email → click link → `/reset-password` → success) — Supabase URL config required first
 - **UNVERIFIED:** PWA offline on a real device — install app to home screen, go offline, attempt quiz and flashcards, reconnect and verify sync toast
 - **UNVERIFIED:** Modules end-to-end on live site (teacher create/publish, student attempt/submit, gradebook)
@@ -207,27 +233,23 @@ ANTHROPIC_API_KEY
 - **UNVERIFIED:** Streak increment works across real days (logic in `progress.ts`, not tested over time)
 - **UNVERIFIED:** `lessons_this_week` Monday reset (logic exists, never tested across a week boundary)
 - **Known cosmetic issue:** Student names show as "Unknown" in teacher analytics — dev data issue, not a code bug; resolves with real signups
-- **Not built:** Admin portal — admin role exists and has access to both portals, but no dedicated admin-only UI (user management, invite system, school-wide analytics). Interim: create admins via Supabase → profiles table, change role to `admin`.
-- **Not built:** Student notifications — built ✅ (`/student/notifications`)
-- **Not built:** Teacher messages — built ✅ (`/teacher/messages`)
-- **Not built:** Review / Weak areas (student tool)
-- **Not built:** Study Timer
-- **Not built:** Daily Challenge
-- **Not built:** Discussions
+- **Not built:** Admin portal — admin role exists and has full access to both portals, but no dedicated admin-only UI (user management, invite system, school-wide analytics). Interim: create admins via Supabase → profiles table, change role to `admin`.
+- **Not built:** Study Timer (next in agreed build order)
+- **Not built:** Gradebook (teacher aggregate view across all modules)
+- **Not built:** Discussions (teacher/student threads)
 
 ---
 
 ## Original App Comparison (bims.bi — reviewed Session 2)
 Key gaps remaining in our build:
+- **Study Timer** — timed study sessions (next in agreed order)
 - **Gradebook** — teacher aggregate view across all modules
+- **Discussions** — teacher/student threads
 - **Curriculum Builder** — structured curriculum tied to Pearson Edexcel exam board units
 - **Student Monitor / Coverage Grid / Trends** — analytics inside the Exam Center (teacher side)
-- **Review (Weak areas)** — student tool surfacing questions they've struggled with
-- **Study Timer** — timed study sessions
-- **Daily Challenge** — gamified daily prompt (+35 XP)
-- **Classes / Study Groups / Discussions / Teaching Center / Patterns / Calendar** — community and extended features
+- **Classes / Study Groups / Teaching Center / Patterns / Calendar** — community and extended features
 
-Features we have that the original does NOT: AI Study Buddy, Teacher Analytics dashboard, PWA offline support.
+Features we have that the original does NOT: AI Study Buddy, AI question extraction from PDFs, Teacher Analytics dashboard, PWA offline support, Interactive onboarding tutorial.
 
 ---
 
@@ -253,18 +275,19 @@ Students select their subjects **once at signup**. They cannot change subjects t
 14. **Service worker** — At `public/sw.js`. Cache name `bims-v1`. Pre-caches `['/', '/login', '/offline']`. Cache-first for `_next/` assets, network-first with cache fallback for navigation. Registered by `ServiceWorkerRegister` client component in root layout.
 15. **Admin access** — In `proxy.ts`, admin role gets an early `return supabaseResponse` that bypasses all route checks. `redirectByRole` sends admins to `/teacher`. Admins can also visit `/student/*` routes freely.
 16. **Public routes in proxy.ts** — The full list is: `['/login', '/signup', '/forgot-password', '/reset-password', '/offline']`. If adding new auth pages, add them here.
+17. **Daily Challenge XP update** — `progress.ts` uses the browser Supabase client and cannot be called from API routes. The Daily Challenge API route (`/api/daily-challenge/route.ts`) inlines the full XP/streak/level/lessons_this_week logic using the server Supabase client. If the XP formula changes, update both `progress.ts` and the Daily Challenge route.
+18. **Daily Challenge answer security** — Correct answer is never sent to client before submission. The server page strips `correct_answer` before passing question to the client component. The API route fetches it server-side to check. The question pool is visible in Supabase if a student has direct DB access — acceptable for school context.
+19. **Tutorial localStorage** — Key is `bims_tutorial_v1`. The tutorial auto-shows if this key is absent. "Take the tour" button on Profile removes the key then dispatches `bims:launch-tutorial` custom event. `TutorialController` in the layout hears this and shows the modal without navigation.
+20. **Tutorial targeting** — Tutorial targets `[data-tutorial="nav-x"]` attributes on sidebar nav links. These are always rendered in the layout, so no page navigation is needed during the tour. Steps with no `targetSelector` show a centered full-screen card.
 
 ---
 
 ## Exact Next Steps for Next Session
-1. **Manual: Supabase URL config** — Supabase → Auth → URL Configuration → set Site URL to Vercel URL, add `/reset-password` to Redirect URLs. Then test the full password reset flow end-to-end.
-2. **Manual: Add Anthropic credits** — console.anthropic.com → Billing. Then test Study Buddy on live site.
-3. **Teacher messages / student notifications** — BUILT ✅. `supabase-announcements.sql` must be run in Supabase SQL editor before it works in production.
-4. **Build admin portal** — dedicated portal for admin role: user management, invite system (invite teachers/admins by email), school-wide analytics, content oversight.
-5. **Test PWA offline on a real device** — install to home screen, go offline, attempt quiz and flashcards, reconnect and verify sync toast.
-6. **Test Modules end-to-end on live site**
-7. **Test Exam Centre PDF upload on live site**
-8. **Consider switching Anthropic key to school account** when ready for full production use.
+1. **CRITICAL manual step:** Run `supabase-daily-challenge.sql` in Supabase SQL editor before testing Daily Challenge.
+2. **Manual:** Supabase → Auth → URL Configuration → set Site URL to Vercel URL, add `/reset-password` to Redirect URLs. Then test the full password reset flow end-to-end.
+3. **Manual:** Add Anthropic billing credits at console.anthropic.com → Billing. Then test Study Buddy and AI question extraction on live site.
+4. **Next feature to build:** Study Timer — timed study sessions with XP reward at completion. Next in agreed build order (Daily Challenge ✅ → Review ✅ → Study Timer → Gradebook → Discussions).
+5. **Test unverified features** — once SQL is run and credits added, verify Daily Challenge, announcements, review, and AI extraction on the live site.
 
 ---
 
