@@ -18,6 +18,7 @@ const quickLinks = [
   { href: '/student/progress', label: 'Progress', description: 'Your analytics', icon: BarChart2, color: 'bg-green-500/10 text-green-500' },
   { href: '/student/leaderboard', label: 'Leaderboard', description: 'Class rankings', icon: Trophy, color: 'bg-yellow-500/10 text-yellow-500' },
   { href: '/student/study-buddy', label: 'Study Buddy', description: 'AI assistant', icon: MessageSquare, color: 'bg-pink-500/10 text-pink-500' },
+  { href: '/student/daily-challenge', label: 'Daily Challenge', description: '+35 XP · resets daily', icon: Zap, color: 'bg-yellow-500/10 text-yellow-500' },
 ]
 
 export default async function StudentDashboard() {
