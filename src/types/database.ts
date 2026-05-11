@@ -189,6 +189,18 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['messages']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['messages']['Insert']>
       }
+      announcements: {
+        Row: {
+          id: string
+          teacher_id: string
+          subject_id: string | null
+          title: string
+          body: string
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['announcements']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['announcements']['Insert']>
+      }
     }
     Views: {}
     Functions: {}

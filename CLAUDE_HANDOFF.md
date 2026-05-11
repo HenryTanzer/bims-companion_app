@@ -38,14 +38,18 @@ Vercel project: `bims-companion` under HenryTanzer's account.
 src/
   app/
     (auth)/
-      login/page.tsx              — Login page (email + password, link to signup)
+      login/page.tsx              — Login page (email + password, "Forgot password?" link) ✅
       signup/page.tsx             — Signup page (name, email, password, role, subject selection) ✅
+      forgot-password/page.tsx    — Sends Supabase password reset email ✅
+      reset-password/page.tsx     — Handles PASSWORD_RECOVERY event, sets new password ✅
     page.tsx                      — Root redirect (role-based)
-    layout.tsx                    — Root layout (ThemeProvider, Toaster)
+    layout.tsx                    — Root layout (ThemeProvider, Toaster, ServiceWorkerRegister)
+    manifest.ts                   — PWA manifest (Next.js 16 native MetadataRoute.Manifest) ✅
+    offline/page.tsx              — Offline fallback page ✅
     api/
-      study-buddy/route.ts        — POST route: streams Claude Haiku response via Anthropic SDK ✅
+      study-buddy/route.ts        — POST route: streams Claude Haiku, strict subject-only guardrails ✅
     student/
-      layout.tsx                  — Student layout (sidebar + topbar)
+      layout.tsx                  — Student layout (sidebar + topbar + OfflineSync + OfflineQueueSync)
       page.tsx                    — Student dashboard (XP, streak, tiles, read-only subject badges)
       quiz/page.tsx               — Quiz page (full MCQ flow, XP rewards) ✅
       flashcards/page.tsx         — Flashcards page (3D flip, spaced rep) ✅
@@ -53,7 +57,7 @@ src/
       progress/page.tsx           — Progress analytics (XP bar, stats, per-subject scores, quiz history) ✅
       leaderboard/page.tsx        — Top 25 by XP, medals for top 3, current user highlighted ✅
       study-buddy/page.tsx        — AI chat tutor (subject-aware, streams Claude Haiku) ✅
-      profile/page.tsx            — Profile page (edit display name, read-only subjects) ✅
+      profile/page.tsx            — Profile page (edit display name, change password) ✅
       modules/page.tsx            — Lists published modules for enrolled subjects ✅
       modules/[id]/page.tsx       — Individual module attempt page (Next.js 16 async params) ✅
     teacher/
@@ -64,23 +68,26 @@ src/
       exam-center/page.tsx        — Exam Centre (upload PDFs, list all papers, delete) ✅
       modules/page.tsx            — Module manager (create, publish, gradebook) ✅
       analytics/page.tsx          — Analytics dashboard (summary stats, per-subject, top performers, recent activity) ✅
-      messages/page.tsx           — Stub only
+      messages/page.tsx           — Announcement broadcast (send to subject group or all) ✅
       profile/page.tsx            — Profile page (edit display name) ✅
   components/
     layout/
-      student-sidebar.tsx         — Includes Modules + Profile links ✅
-      teacher-sidebar.tsx         — Includes Modules + Profile links ✅
+      student-sidebar.tsx         — Logo, nav links including Modules + Profile ✅
+      teacher-sidebar.tsx         — Logo, nav links including Modules + Profile ✅
     shared/
       theme-provider.tsx
       theme-toggle.tsx
-      profile-form.tsx            — Shared profile editor (name, read-only email/role, enrolled subjects for students) ✅
+      profile-form.tsx            — Shared profile editor + change password card ✅
+      service-worker-register.tsx — Registers /sw.js on mount (PWA) ✅
+      offline-sync.tsx            — Caches quiz/flashcard data to IndexedDB on student login ✅
+      offline-queue-sync.tsx      — Processes write queue on reconnect, shows sync toast ✅
     student/
-      quiz-launcher.tsx           — Full quiz engine (setup → quiz → results)
-      flashcard-launcher.tsx      — Full flashcard engine (flip, confidence, spaced rep)
+      quiz-launcher.tsx           — Full quiz engine (offline-aware: IndexedDB reads + write queue)
+      flashcard-launcher.tsx      — Full flashcard engine (offline-aware: IndexedDB reads + write queue)
       exam-center-view.tsx        — Subject tab switcher, papers grouped by year, PDF open button ✅
       study-buddy-chat.tsx        — Streaming chat UI (subject pills, message thread, abort on cancel) ✅
       module-list.tsx             — Module cards with status badge (submitted/overdue/not started) ✅
-      module-attempt.tsx          — Attempt UI (one question at a time, prev/next, reveal, submit, results + review) ✅
+      module-attempt.tsx          — Attempt UI + offline write queue for submissions ✅
     teacher/
       content-manager.tsx         — Tabs: Quiz Questions / Flashcards / Topics
       student-enroller.tsx        — Per-student enrolment manager (add/remove subjects inline) ✅
@@ -92,8 +99,13 @@ src/
       client.ts                   — Browser Supabase client
       server.ts                   — Server Supabase client (uses cookies())
     progress.ts                   — Shared XP/streak/level/lessons_this_week update utility ✅
-  proxy.ts                        — Auth + role-based route protection
+    offline-db.ts                 — IndexedDB layer (DB: bims-offline v2, stores: quiz_questions, flashcards, write_queue) ✅
+  proxy.ts                        — Auth + role-based route protection (admin bypasses all role guards)
   types/database.ts               — Full TypeScript DB schema (manual, not generated)
+
+public/
+  sw.js                           — Service worker (cache-first static, network-first navigation) ✅
+  logo.png                        — School logo (confirmed working on live site) ✅
 
 supabase-schema.sql               — Full DB schema (run once, already executed)
 supabase-modules.sql              — Modules tables schema — ALREADY RUN ✅
@@ -110,11 +122,12 @@ supabase-migrate-geography-to-business.sql — Already run on live DB ✅
 - RLS enabled and policies applied to all base tables ✅
 - IT, Business, Biology subjects seeded ✅ (Geography migrated to Business)
 - Business questions and flashcards seeded ✅
-- Auth: Email provider enabled. Email confirmation status — **UNVERIFIED** (check Supabase → Auth → Providers → Email)
+- Auth: Email provider enabled. Email confirmation: **OFF** (confirmed by user) ✅
 - Triggers: `handle_new_user` (auto-creates profile on signup) ✅ — verified working in production
 - Triggers: `handle_new_student_progress` (auto-creates user_progress row for students) ✅
 - Storage bucket `past-papers`: **CREATED** as public bucket ✅
 - `supabase-modules.sql`: **ALREADY RUN** — modules, module_questions, module_submissions tables exist in live DB ✅
+- URL Configuration: **ACTION REQUIRED** — set Site URL to Vercel URL and add `/reset-password` to Redirect URLs in Supabase → Auth → URL Configuration (needed for password reset flow)
 
 ---
 
@@ -123,6 +136,7 @@ supabase-migrate-geography-to-business.sql — Already run on live DB ✅
 - GitHub repo: `bims-companion_app` (private, master branch)
 - Root Directory: empty (repo root is the app root — do not set a subdirectory)
 - Environment variables set in Vercel: all 4 configured ✅
+- Deployment Protection: **DISABLED** ✅ (so external users like school owner can access the URL without Vercel login)
 - To redeploy: push a new commit to master — Vercel auto-deploys
 
 ---
@@ -153,8 +167,8 @@ ANTHROPIC_API_KEY
 - Student progress page: level/XP progress bar, stat cards (streak, weekly goal, quizzes, subjects), per-subject average score bars, recent quiz history table (last 8 attempts)
 - Student leaderboard: top 25 by XP, gold/silver/bronze medals, current user highlighted with "(you)"
 - Student exam centre: lists past papers for enrolled subjects, grouped by year, opens PDF in new tab
-- Student study buddy: subject-aware AI chat using Claude Haiku, streaming responses, subject pill selector
-- Student profile page: edit display name, read-only email/role, enrolled subjects list
+- Student study buddy: subject-aware AI chat using Claude Haiku, streaming responses, subject pill selector, strict subject-only guardrails
+- Student profile page: edit display name, read-only email/role, enrolled subjects list, **change password card** ✅
 - Student modules: list published modules with status badges, full attempt UI (one-at-a-time, prev/next, reveal, submit), results screen with per-question review, XP earned
 - Teacher portal: layout, sidebar, dashboard with stats
 - Teacher content manager: create quiz questions, flashcards, topics — all saved to Supabase
@@ -163,31 +177,39 @@ ANTHROPIC_API_KEY
 - Teacher modules: create modules with question picker, publish/unpublish, delete, on-demand gradebook per module
 - Teacher analytics: summary stats (total attempts, avg score, active this week, total XP), per-subject breakdown with progress bars, top performers list, recent quiz activity feed
 - Teacher profile page: edit display name, read-only email/role
-- Both sidebars: Modules + Profile links, highlights on active route
+- Both sidebars: school logo, nav links, highlights on active route
 - `StudentEnroller` component: teachers expand a panel per student to add/remove subject enrolments
 - Signup page: collects name, email, password, role, subject selection (students only); enrols student in selected subjects after signup — **verified working in production** ✅
 - `src/lib/progress.ts`: shared utility that handles XP, level, streak, and `lessons_this_week` in one atomic DB update
 - Subject changed from Geography to Business across all code and live database
 - TypeScript passing clean (`tsc --noEmit` no errors) ✅
 - Deployed to Vercel ✅
-- School logo added to login page, signup page, student sidebar, teacher sidebar — code done; requires `public/logo.png` to be present *(see below)*
+- School logo: `public/logo.png` — confirmed working on live site ✅
+- **Forgot password page** (`/forgot-password`): sends Supabase reset email ✅
+- **Reset password page** (`/reset-password`): handles `PASSWORD_RECOVERY` event, sets new password ✅
+- **Password change on profile page**: logged-in users can change password without email flow ✅
+- **Admin access**: admin role bypasses all role guards in `proxy.ts`, lands on `/teacher` after login, can freely access both student and teacher portals ✅
+- **Study Buddy guardrails**: strict system prompt — subject-only, refuses off-topic with fixed message, ignores persona changes/prompt injection ✅
+- **PWA Phase 1**: `src/app/manifest.ts` (native Next.js 16 manifest), `public/sw.js` (service worker), `src/app/offline/page.tsx`, `src/components/shared/service-worker-register.tsx` — app is installable to home screen ✅
+- **PWA Phase 2**: `src/lib/offline-db.ts` (IndexedDB, DB: `bims-offline` v2), `src/components/shared/offline-sync.tsx` — quiz questions and flashcards cached to IndexedDB on student login; offline reads work in quiz and flashcard launchers ✅
+- **PWA Phase 3**: write queue in IndexedDB (`write_queue` store), `src/components/shared/offline-queue-sync.tsx` — offline quiz results, flashcard reviews, and module submissions are queued and silently synced on reconnect ✅
 
 ---
 
 ## What Is Broken, Unknown, or Unverified
-- **ACTION REQUIRED:** `public/logo.png` must be saved manually — the logo code is in place but the image file has not been added to the `public/` folder yet. App will show a broken image until this is done.
-- **UNVERIFIED:** Study Buddy in production — Anthropic credits not yet added; feature will error until billing is set up at console.anthropic.com
-- **UNVERIFIED:** Modules system end-to-end — tables exist but not manually tested (teacher create/publish, student attempt/submit, gradebook)
-- **UNVERIFIED:** Exam Centre PDF upload in production — bucket exists but upload flow not tested on live site
-- **UNVERIFIED:** Profile pages in production — not tested on live site
-- **UNVERIFIED:** Email confirmation status — unknown if on or off in Supabase Auth settings
-- **UNVERIFIED:** Streak increment works across real days (logic is in `progress.ts` but not tested over time)
+- **ACTION REQUIRED (manual):** Supabase → Auth → URL Configuration → set Site URL to Vercel URL, add `/reset-password` to Redirect URLs. Password reset emails will not redirect correctly until this is done.
+- **ACTION REQUIRED (manual):** Add Anthropic billing credits at console.anthropic.com → Billing. Study Buddy is broken in production until this is done.
+- **UNVERIFIED:** Password reset flow end-to-end (email → click link → `/reset-password` → success) — Supabase URL config required first
+- **UNVERIFIED:** PWA offline on a real device — install app to home screen, go offline, attempt quiz and flashcards, reconnect and verify sync toast
+- **UNVERIFIED:** Modules end-to-end on live site (teacher create/publish, student attempt/submit, gradebook)
+- **UNVERIFIED:** Exam Centre PDF upload on live site
+- **UNVERIFIED:** Profile pages on live site
+- **UNVERIFIED:** Streak increment works across real days (logic in `progress.ts`, not tested over time)
 - **UNVERIFIED:** `lessons_this_week` Monday reset (logic exists, never tested across a week boundary)
-- **Known cosmetic issue:** Student names show as "Unknown" in teacher analytics when quiz attempts exist but profile rows are missing — dev data issue, not a code bug; will resolve with real signups
-- **Not built:** PWA offline support (planned in 3 phases — see PROJECT_DECISIONS.md)
-- **Not built:** Admin portal — `admin` role exists in DB but no portal page. Interim: manage admins via Supabase dashboard (change `role` to `admin` in profiles table directly). Portal planned with user management, invite system, school-wide analytics.
-- **Not built:** Teacher messages page (stub only)
-- **Not built:** Student notifications
+- **Known cosmetic issue:** Student names show as "Unknown" in teacher analytics — dev data issue, not a code bug; resolves with real signups
+- **Not built:** Admin portal — admin role exists and has access to both portals, but no dedicated admin-only UI (user management, invite system, school-wide analytics). Interim: create admins via Supabase → profiles table, change role to `admin`.
+- **Not built:** Student notifications — built ✅ (`/student/notifications`)
+- **Not built:** Teacher messages — built ✅ (`/teacher/messages`)
 - **Not built:** Review / Weak areas (student tool)
 - **Not built:** Study Timer
 - **Not built:** Daily Challenge
@@ -205,7 +227,7 @@ Key gaps remaining in our build:
 - **Daily Challenge** — gamified daily prompt (+35 XP)
 - **Classes / Study Groups / Discussions / Teaching Center / Patterns / Calendar** — community and extended features
 
-Features we have that the original does NOT: AI Study Buddy, Teacher Analytics dashboard.
+Features we have that the original does NOT: AI Study Buddy, Teacher Analytics dashboard, PWA offline support.
 
 ---
 
@@ -225,20 +247,24 @@ Students select their subjects **once at signup**. They cannot change subjects t
 8. **Next.js 16 dynamic params** — `params` is now a `Promise`. Always `const { id } = await params` in async server components. Pattern: `params: Promise<{ id: string }>`.
 9. **Vercel Root Directory** — Must be empty (not `./` with a value, not a subdirectory path). The repo root is the app root.
 10. **Redeploy after env var changes** — Changing env vars in Vercel Settings does not auto-redeploy. Must manually redeploy or push a new commit.
-11. **School logo** — Image is at `public/logo.png`. Used in login, signup, student sidebar, teacher sidebar. White rounded container (`bg-white rounded-xl p-0.5`) ensures visibility in dark mode.
+11. **School logo** — Image is at `public/logo.png`. Confirmed working on live site. White rounded container (`bg-white rounded-xl p-0.5`) ensures visibility in dark mode.
+12. **PWA manifest** — Uses Next.js 16 native `MetadataRoute.Manifest` via `src/app/manifest.ts`. Do NOT add `@ducanh2912/next-pwa` or a static `public/manifest.json` — the native API handles it.
+13. **IndexedDB** — DB name `bims-offline`, version 2, three stores: `quiz_questions`, `flashcards`, `write_queue`. No external library — uses native IndexedDB API. `offline-db.ts` wraps it in Promises.
+14. **Service worker** — At `public/sw.js`. Cache name `bims-v1`. Pre-caches `['/', '/login', '/offline']`. Cache-first for `_next/` assets, network-first with cache fallback for navigation. Registered by `ServiceWorkerRegister` client component in root layout.
+15. **Admin access** — In `proxy.ts`, admin role gets an early `return supabaseResponse` that bypasses all route checks. `redirectByRole` sends admins to `/teacher`. Admins can also visit `/student/*` routes freely.
+16. **Public routes in proxy.ts** — The full list is: `['/login', '/signup', '/forgot-password', '/reset-password', '/offline']`. If adding new auth pages, add them here.
 
 ---
 
 ## Exact Next Steps for Next Session
-1. **Save `public/logo.png`** — copy the school logo image into `C:\Users\Henry Tanzer\Documents\bims-companion\public\` as `logo.png`, then `git add . && git commit -m "Add school logo" && git push`
-2. **Add Anthropic credits** — console.anthropic.com → Billing → add card + credits. Then test Study Buddy on live site.
-3. **Verify email confirmation is off** — Supabase → Auth → Providers → Email → "Confirm email" toggle
-4. **Build PWA Phase 1** — manifest.json, service worker via `@ducanh2912/next-pwa`, app shell caching, install prompt
-5. **Build PWA Phase 2** — IndexedDB caching of quiz questions, flashcards, module content on login; offline reads
-6. **Build PWA Phase 3** — offline write queue for quiz results, flashcard reviews, module submissions; background sync
-7. **Test Modules end-to-end on live site**
-8. **Build teacher messages / student notifications**
-9. **Consider switching Anthropic key to school account** when ready for full production use
+1. **Manual: Supabase URL config** — Supabase → Auth → URL Configuration → set Site URL to Vercel URL, add `/reset-password` to Redirect URLs. Then test the full password reset flow end-to-end.
+2. **Manual: Add Anthropic credits** — console.anthropic.com → Billing. Then test Study Buddy on live site.
+3. **Teacher messages / student notifications** — BUILT ✅. `supabase-announcements.sql` must be run in Supabase SQL editor before it works in production.
+4. **Build admin portal** — dedicated portal for admin role: user management, invite system (invite teachers/admins by email), school-wide analytics, content oversight.
+5. **Test PWA offline on a real device** — install to home screen, go offline, attempt quiz and flashcards, reconnect and verify sync toast.
+6. **Test Modules end-to-end on live site**
+7. **Test Exam Centre PDF upload on live site**
+8. **Consider switching Anthropic key to school account** when ready for full production use.
 
 ---
 
