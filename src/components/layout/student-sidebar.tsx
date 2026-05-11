@@ -4,9 +4,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
-  BookOpen, Home, Brain, CreditCard, FileText,
+  Home, Brain, CreditCard, FileText,
   BarChart2, Trophy, MessageSquare, LogOut, UserCircle, Layers
 } from 'lucide-react'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -36,8 +37,8 @@ export function StudentSidebar() {
     <aside className="flex flex-col w-64 min-h-screen bg-card border-r border-border shrink-0">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary">
-          <BookOpen className="w-5 h-5 text-primary-foreground" />
+        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white p-0.5 shrink-0">
+          <Image src="/logo.png" alt="BIMS School" width={32} height={32} className="object-contain" />
         </div>
         <div>
           <p className="font-bold text-sm leading-none">BIMS Companion</p>

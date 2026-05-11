@@ -4,7 +4,7 @@
 
 ### Framework: Next.js 16 App Router
 **Why:** File-based routing, server components for fast data fetching, easy Vercel deployment, built-in TypeScript support. App Router allows layouts to be shared across page groups without prop drilling.
-**Note:** Next.js 16 introduced a breaking rename — `middleware.ts` is now `proxy.ts` and the exported function must be named `proxy`. This is already implemented.
+**Note:** Next.js 16 renamed `middleware.ts` → `proxy.ts` and the exported function must be named `proxy`. This is already implemented.
 **Note:** Dynamic route `params` is now a `Promise` in Next.js 16. Always `const { id } = await params` in async server components.
 
 ### Database: Supabase
@@ -15,7 +15,7 @@
 
 ### Auth: Supabase Email Auth (no OAuth)
 **Why:** Simplest setup for a school environment where students use school email addresses. No Google/GitHub OAuth required. Email confirmation is disabled for local development to allow immediate testing.
-**Pending:** Whether to enable email confirmation for production.
+**Pending:** Verify confirmation is still off in production. Enable for production when ready.
 
 ### User Roles: student / teacher / admin
 **Why:** Three roles cover all use cases. Role is stored in the `profiles` table and enforced in both RLS policies (database level) and `proxy.ts` (route level). Admin role is scaffolded in the DB but has no dedicated portal page yet.
@@ -54,11 +54,12 @@ All XP/streak/level updates go through `src/lib/progress.ts` → `updateStudentP
 
 ### AI Study Buddy: Claude Haiku, Streaming via ReadableStream
 **Why:** Claude Haiku (claude-haiku-4-5-20251001) is fast and cheap — suitable for interactive chat. Streaming makes responses feel immediate. The API route uses `MessageStream` from `@anthropic-ai/sdk`, iterates events, and forwards `text_delta` chunks as a plain-text `ReadableStream` to the client. The client reads chunks and appends them to the last assistant message in state.
+**Note:** Claude already knows A-Level IT, Business, and Biology content from its training data. No teacher content upload or fine-tuning is required for the AI to work.
 **Note:** This feature does not exist in the original bims.bi app — it is an enhancement in our rebuild.
 
 ### PDF Storage: Supabase Storage (`past-papers` bucket)
 **Why:** Supabase Storage is already in the stack and simplest to integrate. Teacher uploads go to a public bucket named `past-papers`. The public URL is stored in `past_papers.file_url`. Delete removes the Storage object first, then the DB record.
-**Requirement:** Bucket must be created manually in Supabase dashboard (Storage → New bucket → `past-papers` → Public: on) before upload works. Not yet created.
+**Status:** Bucket created as public in Supabase dashboard ✅
 
 ### Profile Page: Shared Component, Per-Portal Pages
 **Why:** Both student and teacher need the same edit form (display name only — email and role are read-only). A single `ProfileForm` client component is reused by both portal pages. Student version additionally shows enrolled subjects (read-only). Teacher version omits that section.
@@ -66,11 +67,23 @@ All XP/streak/level updates go through `src/lib/progress.ts` → `updateStudentP
 ### Modules/Assignments System
 **Why:** Reviewed original app at bims.bi — Modules is flagged as "Priority" in the Director dashboard. It is the largest functional gap in our rebuild. Teachers create assessments with questions, due dates, and publish them to a subject. Students complete them question-by-question and submit. Teachers view a gradebook of all enrolled students' scores.
 **Schema:** Three tables — `modules`, `module_questions` (join table to quiz_questions), `module_submissions`. All with RLS.
-**Status:** Code fully built. `supabase-modules.sql` not yet run in live DB — modules pages will error until it is.
+**Status:** Code fully built. `supabase-modules.sql` run in live DB ✅. End-to-end not yet tested in production.
 **Score computation:** Calculated at submit time via `Object.entries(answers).filter(...)` — not accumulated in state — to avoid stale closure issues.
 
 ### Module Score Calculation: Computed at Submit, Not Accumulated
 **Why:** Accumulating score in React state during an attempt leads to stale closure bugs (the same issue that caused flashcard XP off-by-one). Instead, the final score is computed once at submit time by iterating over the `answers` record and comparing each to the question's `correct_answer`. This is authoritative and immune to React batching.
+
+### Teacher Analytics: Server Component, No Chart Library
+**Why:** All analytics data lives in existing tables (`quiz_attempts`, `user_progress`, `profiles`, `subjects`). No new schema needed. A chart library (e.g. Recharts) was not added to keep the bundle small — per-subject scores are shown as shadcn `Progress` bars instead. If richer charts are needed later, add Recharts at that point.
+**What it shows:** Total quiz attempts, average score, active students this week, total XP earned; per-subject attempt count + avg score; top 5 performers (min 3 attempts); last 15 quiz attempts feed.
+
+### Deployment: Vercel
+**Why:** First-class Next.js support, free tier covers the school's usage, zero-config deployment from GitHub push, environment variables managed in dashboard.
+**Setup:** GitHub repo `bims-companion_app` (private, master branch) connected to Vercel. Root Directory must be empty — the repo root is the app root.
+**Redeployment:** Push to master triggers automatic redeploy. After changing env vars in Vercel Settings, a manual redeploy is required.
+
+### Anthropic API Key: Personal Account for Now, School Account Recommended for Production
+**Why:** A personal Anthropic account was used for initial setup. For production school use, a dedicated school account should be created at console.anthropic.com to keep billing and usage separate. Swapping the key requires updating `ANTHROPIC_API_KEY` in Vercel → Settings → Environment Variables and redeploying — no code changes needed.
 
 ---
 
@@ -78,10 +91,10 @@ All XP/streak/level updates go through `src/lib/progress.ts` → `updateStudentP
 
 | Decision | Options | Notes |
 |---|---|---|
-| Email confirmation | Enable for production or keep off | Off now for dev convenience; unverified current state |
-| Deployment | Vercel (recommended) vs. other | Not set up yet; no GitHub repo connected |
+| Email confirmation | Enable for production or keep off | Off now for dev convenience; unverified current state in production |
+| Anthropic account | Personal vs. dedicated school account | Personal used currently; school account recommended before sharing with students |
 | Admin portal | Build full admin UI vs. manage via Supabase dashboard | No admin pages exist yet |
 | Type generation | Manual types vs. `supabase gen types` | Manual now; generated types would remove `as any` casts |
 | Offline / PWA | Add service worker + manifest for offline use | Not started; relevant for school environments with poor connectivity |
-| Teacher analytics design | Quiz attempt breakdown, student performance trends | Stub page only |
-| Messaging design | One-to-one vs. broadcast to subject group | Not designed; stub page only |
+| Teacher messages design | One-to-one vs. broadcast to subject group | Not designed; stub page only |
+| Review / Weak areas design | Surface by topic, by question, or by score threshold | Not designed yet |

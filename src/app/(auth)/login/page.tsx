@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Link from 'next/link'
-import { BookOpen, Loader2 } from 'lucide-react'
+import Image from 'next/image'
+import { Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -49,8 +50,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-8">
         {/* Logo */}
         <div className="flex flex-col items-center gap-2 text-center">
-          <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-primary">
-            <BookOpen className="w-7 h-7 text-primary-foreground" />
+          <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-white p-1.5">
+            <Image src="/logo.png" alt="BIMS School" width={68} height={68} className="object-contain" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">BIMS Companion</h1>
           <p className="text-muted-foreground text-sm">Your A-Level Study Platform</p>

@@ -28,7 +28,8 @@ Recreating the original app at https://bims.bi — reviewed Director and Student
 ---
 
 ## Current Development Status
-Active local development. Not yet deployed. No CI/CD configured.
+**Deployed to Vercel.** Live and accessible. GitHub repo: `bims-companion_app` (private, master branch).
+Vercel project: `bims-companion` under HenryTanzer's account.
 
 ---
 
@@ -62,7 +63,7 @@ src/
       students/page.tsx           — Student list with XP/streak/quiz stats + enrolment manager ✅
       exam-center/page.tsx        — Exam Centre (upload PDFs, list all papers, delete) ✅
       modules/page.tsx            — Module manager (create, publish, gradebook) ✅
-      analytics/page.tsx          — Stub only
+      analytics/page.tsx          — Analytics dashboard (summary stats, per-subject, top performers, recent activity) ✅
       messages/page.tsx           — Stub only
       profile/page.tsx            — Profile page (edit display name) ✅
   components/
@@ -95,7 +96,7 @@ src/
   types/database.ts               — Full TypeScript DB schema (manual, not generated)
 
 supabase-schema.sql               — Full DB schema (run once, already executed)
-supabase-modules.sql              — Modules tables schema — NOT YET RUN in Supabase
+supabase-modules.sql              — Modules tables schema — ALREADY RUN ✅
 supabase-seed-questions.sql       — 15 sample quiz questions (IT/Business/Biology)
 supabase-seed-flashcards.sql      — 24 sample flashcards (IT/Business/Biology)
 supabase-migrate-geography-to-business.sql — Already run on live DB ✅
@@ -108,16 +109,27 @@ supabase-migrate-geography-to-business.sql — Already run on live DB ✅
 - Schema executed (all 11 base tables created) ✅
 - RLS enabled and policies applied to all base tables ✅
 - IT, Business, Biology subjects seeded ✅ (Geography migrated to Business)
-- Business questions and flashcards seeded ✅ (Geography content deleted, Business content inserted)
-- Auth: Email provider enabled. Email confirmation is OFF (for local testing) — **unverified if still off**
-- Triggers: `handle_new_user` (auto-creates profile on signup), `handle_new_student_progress` (auto-creates user_progress row for students) ✅
-- Storage bucket `past-papers`: **NOT YET CREATED** — required for PDF upload in teacher exam centre to work
-- `supabase-modules.sql`: **NOT YET RUN** — modules, module_questions, module_submissions tables don't exist yet in live DB
+- Business questions and flashcards seeded ✅
+- Auth: Email provider enabled. Email confirmation status — **UNVERIFIED** (check Supabase → Auth → Providers → Email)
+- Triggers: `handle_new_user` (auto-creates profile on signup) ✅ — verified working in production
+- Triggers: `handle_new_student_progress` (auto-creates user_progress row for students) ✅
+- Storage bucket `past-papers`: **CREATED** as public bucket ✅
+- `supabase-modules.sql`: **ALREADY RUN** — modules, module_questions, module_submissions tables exist in live DB ✅
+
+---
+
+## Vercel Deployment
+- Deployed and live ✅
+- GitHub repo: `bims-companion_app` (private, master branch)
+- Root Directory: empty (repo root is the app root — do not set a subdirectory)
+- Environment variables set in Vercel: all 4 configured ✅
+- To redeploy: push a new commit to master — Vercel auto-deploys
 
 ---
 
 ## Required Environment Variables (names only)
-File: `.env.local` in project root
+File: `.env.local` in project root (local dev only — never commit this file)
+Also set in Vercel dashboard for production.
 
 ```
 NEXT_PUBLIC_SUPABASE_URL
@@ -125,6 +137,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY
 ANTHROPIC_API_KEY
 ```
+
+**Note on Anthropic API key:** Currently using a personal Anthropic account. For production school use, create a dedicated school account at console.anthropic.com, generate a new key, and swap it in Vercel → Settings → Environment Variables → Redeploy.
 
 ---
 
@@ -147,27 +161,29 @@ ANTHROPIC_API_KEY
 - Teacher students page: lists all students with XP/streak/quiz stats, subject pills, per-student enrolment manager
 - Teacher exam centre: upload PDFs to Supabase Storage (`past-papers` bucket), save record to DB, list all papers, delete (removes from Storage + DB)
 - Teacher modules: create modules with question picker, publish/unpublish, delete, on-demand gradebook per module
+- Teacher analytics: summary stats (total attempts, avg score, active this week, total XP), per-subject breakdown with progress bars, top performers list, recent quiz activity feed
 - Teacher profile page: edit display name, read-only email/role
 - Both sidebars: Modules + Profile links, highlights on active route
 - `StudentEnroller` component: teachers expand a panel per student to add/remove subject enrolments
-- Signup page: collects name, email, password, role, subject selection (students only); enrols student in selected subjects after signup
+- Signup page: collects name, email, password, role, subject selection (students only); enrols student in selected subjects after signup — **verified working in production** ✅
 - `src/lib/progress.ts`: shared utility that handles XP, level, streak, and `lessons_this_week` in one atomic DB update
 - Subject changed from Geography to Business across all code and live database
 - TypeScript passing clean (`tsc --noEmit` no errors) ✅
+- Deployed to Vercel ✅
 
 ---
 
 ## What Is Broken, Unknown, or Unverified
-- **NOT RUN:** `supabase-modules.sql` — modules tables do not exist in live DB yet; Modules pages will error until this is run
-- **NOT CREATED:** Supabase Storage bucket `past-papers` — teacher PDF upload will fail until this bucket is created as public
-- **UNVERIFIED:** Signup flow end-to-end — subject selection, enrollment insert, trigger timing (600ms wait), redirect
+- **UNVERIFIED:** Study Buddy in production — Anthropic credits not yet added; feature will error until billing is set up at console.anthropic.com
+- **UNVERIFIED:** Modules system end-to-end — tables exist but not manually tested (teacher create/publish, student attempt/submit, gradebook)
+- **UNVERIFIED:** Exam Centre PDF upload in production — bucket exists but upload flow not tested on live site
+- **UNVERIFIED:** Profile pages in production — not tested on live site
+- **UNVERIFIED:** Email confirmation status — unknown if on or off in Supabase Auth settings
 - **UNVERIFIED:** Streak increment works across real days (logic is in `progress.ts` but not tested over time)
 - **UNVERIFIED:** `lessons_this_week` Monday reset (logic exists, never tested across a week boundary)
-- **UNVERIFIED:** Email confirmation is off in Supabase Auth settings
-- **UNVERIFIED:** Modules system — built but not manually tested end-to-end
-- **UNVERIFIED:** Study Buddy, Exam Centre, Profile pages — built but not manually tested end-to-end
-- **Not built:** Teacher analytics page (stub only)
+- **Known cosmetic issue:** Student names show as "Unknown" in teacher analytics when quiz attempts exist but profile rows are missing — dev data issue, not a code bug; will resolve with real signups
 - **Not built:** Teacher messages page (stub only)
+- **Not built:** Student notifications
 - **Not built:** Review / Weak areas (student tool)
 - **Not built:** Study Timer
 - **Not built:** Daily Challenge
@@ -185,7 +201,7 @@ Key gaps remaining in our build:
 - **Daily Challenge** — gamified daily prompt (+35 XP)
 - **Classes / Study Groups / Discussions / Teaching Center / Patterns / Calendar** — community and extended features
 
-Features we have that the original does NOT: AI Study Buddy.
+Features we have that the original does NOT: AI Study Buddy, Teacher Analytics dashboard.
 
 ---
 
@@ -201,19 +217,20 @@ Students select their subjects **once at signup**. They cannot change subjects t
 4. **Role from profile** — Use `(data as any)?.role` pattern; Supabase types can resolve to `never`.
 5. **Node PATH in PowerShell** — If `node`/`npx` not found, reload PATH: `$env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH","User")`.
 6. **Anthropic SDK streaming** — `MessageStream` has no `.textStream`. Use `for await (const event of stream)` and check `event.type === 'content_block_delta' && event.delta.type === 'text_delta'`.
-7. **Supabase Storage** — The `past-papers` bucket must exist as a **public** bucket before teacher PDF upload works. Create in Supabase dashboard: Storage → New bucket → name: `past-papers` → Public: on.
+7. **Supabase Storage** — The `past-papers` bucket exists as a public bucket. ✅
 8. **Next.js 16 dynamic params** — `params` is now a `Promise`. Always `const { id } = await params` in async server components. Pattern: `params: Promise<{ id: string }>`.
-9. **`supabase-modules.sql` not yet run** — Modules tables don't exist in the live DB. Run this before testing any Modules pages or they will throw DB errors.
+9. **Vercel Root Directory** — Must be empty (not `./` with a value, not a subdirectory path). The repo root is the app root.
+10. **Redeploy after env var changes** — Changing env vars in Vercel Settings does not auto-redeploy. Must manually redeploy or push a new commit.
 
 ---
 
 ## Exact Next Steps for Next Session
-1. **Run `supabase-modules.sql`** in Supabase SQL Editor (creates modules, module_questions, module_submissions tables)
-2. **Create Supabase Storage bucket** — Storage → New bucket → name: `past-papers` → Public: on (manual step)
-3. **Test Modules end-to-end** — teacher creates module, publishes it, student attempts and submits, teacher views gradebook
-4. **Test signup, Study Buddy, Exam Centre, Profile pages** end-to-end (all unverified)
-5. Build teacher analytics page
-6. Build teacher messages / student notifications
+1. **Add Anthropic credits** — console.anthropic.com → Billing → add card + credits. Then test Study Buddy on live site.
+2. **Test Modules end-to-end on live site** — teacher creates module, publishes it, student attempts and submits, teacher views gradebook
+3. **Test Exam Centre PDF upload on live site**
+4. **Verify email confirmation is off** — Supabase → Auth → Providers → Email → "Confirm email" toggle
+5. **Build teacher messages / student notifications**
+6. **Consider switching Anthropic key to school account** when ready for full production use
 
 ---
 
@@ -226,6 +243,9 @@ npm run dev
 # Type check
 npx tsc --noEmit
 
-# Build for production
-npm run build
+# Push to production
+git add .
+git commit -m "your message"
+git push
+# Vercel auto-deploys on push to master
 ```
