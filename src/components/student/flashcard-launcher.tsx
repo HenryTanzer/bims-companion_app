@@ -52,22 +52,33 @@ export function FlashcardLauncher({ subjects, topics, studentId }: {
     if (!subjectId) { toast.error('Please select a subject'); return }
     setLoading(true)
 
-    let query = supabase
-      .from('flashcards')
-      .select('id, term, definition')
-      .eq('subject_id', subjectId)
+    let data: Flashcard[] | null = null
 
-    if (topicId !== 'all') query = query.eq('topic_id', topicId)
-
-    const { data, error } = await query.limit(20)
-
-    if (error || !data || data.length === 0) {
-      toast.error('No flashcards found for this selection. Ask your teacher to add some!')
-      setLoading(false)
-      return
+    if (!navigator.onLine) {
+      const { getOfflineFlashcards } = await import('@/lib/offline-db')
+      const offline = await getOfflineFlashcards(subjectId, topicId !== 'all' ? topicId : undefined)
+      if (offline.length === 0) {
+        toast.error('No offline flashcards available. Connect to the internet and visit this page to download your deck.')
+        setLoading(false)
+        return
+      }
+      data = offline as Flashcard[]
+    } else {
+      let query = supabase
+        .from('flashcards')
+        .select('id, term, definition')
+        .eq('subject_id', subjectId)
+      if (topicId !== 'all') query = query.eq('topic_id', topicId)
+      const res = await query.limit(20)
+      if (res.error || !res.data || res.data.length === 0) {
+        toast.error('No flashcards found for this selection. Ask your teacher to add some!')
+        setLoading(false)
+        return
+      }
+      data = res.data as Flashcard[]
     }
 
-    setCards([...data].sort(() => Math.random() - 0.5))
+    setCards([...data].sort(() => Math.random() - 0.5).slice(0, 20))
     setCurrent(0)
     setFlipped(false)
     setXpTotal(0)
@@ -82,15 +93,16 @@ export function FlashcardLauncher({ subjects, topics, studentId }: {
     const nextReview = new Date()
     nextReview.setDate(nextReview.getDate() + daysUntilReview)
 
-    // Upsert the review record
-    await supabase.from('flashcard_reviews').upsert({
-      student_id: studentId,
-      flashcard_id: card.id,
-      confidence,
-      next_review_at: nextReview.toISOString(),
-      last_reviewed_at: new Date().toISOString(),
-      review_count: 1,
-    } as any, { onConflict: 'student_id,flashcard_id' })
+    if (navigator.onLine) {
+      await supabase.from('flashcard_reviews').upsert({
+        student_id: studentId,
+        flashcard_id: card.id,
+        confidence,
+        next_review_at: nextReview.toISOString(),
+        last_reviewed_at: new Date().toISOString(),
+        review_count: 1,
+      } as any, { onConflict: 'student_id,flashcard_id' })
+    }
 
     const xpGained = 5
     const newXpTotal = xpTotal + xpGained
@@ -98,7 +110,11 @@ export function FlashcardLauncher({ subjects, topics, studentId }: {
     setReviewed(r => r + 1)
 
     if (current + 1 >= cards.length) {
-      await updateStudentProgress(studentId, newXpTotal)
+      if (navigator.onLine) {
+        await updateStudentProgress(studentId, newXpTotal)
+      } else {
+        toast.warning('You\'re offline — your XP won\'t be saved until you reconnect.')
+      }
       setPhase('done')
     } else {
       setCurrent(c => c + 1)

@@ -58,23 +58,33 @@ export function QuizLauncher({
     if (!subjectId) { toast.error('Please select a subject'); return }
     setLoading(true)
 
-    let query = supabase
-      .from('quiz_questions')
-      .select('id, question, options, correct_answer, explanation, difficulty')
-      .eq('subject_id', subjectId)
+    let data: Question[] | null = null
 
-    if (topicId !== 'all') query = query.eq('topic_id', topicId)
-
-    const { data, error } = await query.limit(10)
-
-    if (error || !data || data.length === 0) {
-      toast.error('No questions found for this selection. Ask your teacher to add some!')
-      setLoading(false)
-      return
+    if (!navigator.onLine) {
+      const { getOfflineQuestions } = await import('@/lib/offline-db')
+      const offline = await getOfflineQuestions(subjectId, topicId !== 'all' ? topicId : undefined)
+      if (offline.length === 0) {
+        toast.error('No offline questions available. Connect to the internet and visit this page to download questions.')
+        setLoading(false)
+        return
+      }
+      data = offline as Question[]
+    } else {
+      let query = supabase
+        .from('quiz_questions')
+        .select('id, question, options, correct_answer, explanation, difficulty')
+        .eq('subject_id', subjectId)
+      if (topicId !== 'all') query = query.eq('topic_id', topicId)
+      const res = await query.limit(10)
+      if (res.error || !res.data || res.data.length === 0) {
+        toast.error('No questions found for this selection. Ask your teacher to add some!')
+        setLoading(false)
+        return
+      }
+      data = res.data as Question[]
     }
 
-    // Shuffle questions
-    const shuffled = [...data].sort(() => Math.random() - 0.5)
+    const shuffled = [...data].sort(() => Math.random() - 0.5).slice(0, 10)
     setQuestions(shuffled)
     setCurrent(0)
     setSelected(null)
@@ -111,18 +121,21 @@ export function QuizLauncher({
     const perfect = score === total
     const xpEarned = score * 10 + (perfect ? 25 : 0)
 
-    // Save attempt
-    await supabase.from('quiz_attempts').insert({
-      student_id: studentId,
-      subject_id: subjectId,
-      topic_id: topicId !== 'all' ? topicId : null,
-      score,
-      total_questions: total,
-      answers,
-      xp_earned: xpEarned,
-    } as any)
+    if (!navigator.onLine) {
+      toast.warning('You\'re offline — your score won\'t be saved until you reconnect.')
+    } else {
+      await supabase.from('quiz_attempts').insert({
+        student_id: studentId,
+        subject_id: subjectId,
+        topic_id: topicId !== 'all' ? topicId : null,
+        score,
+        total_questions: total,
+        answers,
+        xp_earned: xpEarned,
+      } as any)
+      await updateStudentProgress(studentId, xpEarned)
+    }
 
-    await updateStudentProgress(studentId, xpEarned)
     setPhase('results')
   }
 
