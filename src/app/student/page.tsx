@@ -64,7 +64,7 @@ export default async function StudentDashboard() {
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/30 via-primary/10 to-transparent border border-primary/20 p-6">
         <GraduationCap className="absolute -right-6 -top-6 w-48 h-48 text-primary/8 pointer-events-none" />
         <p className="text-sm text-primary/70 font-medium">{greeting},</p>
-        <h1 className="text-3xl font-bold mt-0.5">{firstName}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mt-0.5">{firstName}</h1>
         <div className="flex flex-wrap items-center gap-2 mt-3">
           <span className="flex items-center gap-1.5 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-3 py-1 text-xs font-semibold">
             <Star className="w-3 h-3" /> Level {level}

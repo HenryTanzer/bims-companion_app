@@ -24,7 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="flex min-h-screen bg-background">
       <AdminSidebar />
       <div className="flex flex-col flex-1 min-w-0">
-        <header className="flex items-center justify-between px-6 py-3 border-b border-border bg-card/50 backdrop-blur sticky top-0 z-10">
+        <header className="flex items-center justify-between pl-14 pr-4 md:px-6 py-3 border-b border-border bg-card/50 backdrop-blur sticky top-0 z-10">
           <div />
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -35,7 +35,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </Avatar>
           </div>
         </header>
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 md:p-6">
           {children}
         </main>
       </div>
