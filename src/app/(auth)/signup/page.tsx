@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, CheckSquare, Square, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import { Loader2, CheckSquare, Square, AlertTriangle, CheckCircle2, GraduationCap, Brain, BookOpen, FlaskConical, Cpu, TrendingUp } from 'lucide-react'
 import Image from 'next/image'
 
 type Subject = { id: string; name: string }
@@ -129,8 +129,20 @@ export default function SignupPage() {
   const confirmedSubjectName = subjects.find(s => s.id === confirmedTeacherSubject)?.name
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Colour blobs */}
+      <div className="absolute -top-32 -left-32 w-[28rem] h-[28rem] rounded-full bg-primary/20 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-[28rem] h-[28rem] rounded-full bg-blue-500/15 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/3 right-1/4 w-64 h-64 rounded-full bg-violet-500/10 blur-3xl pointer-events-none" />
+      {/* Floating study icons */}
+      <GraduationCap className="absolute top-10 left-10 w-10 h-10 text-primary/20 -rotate-12 pointer-events-none" />
+      <Brain        className="absolute top-16 right-16 w-8  h-8  text-violet-400/20 rotate-6   pointer-events-none" />
+      <BookOpen     className="absolute bottom-24 left-20 w-7  h-7  text-blue-400/20  rotate-12  pointer-events-none" />
+      <FlaskConical className="absolute bottom-36 right-20 w-7  h-7  text-green-400/20 -rotate-6  pointer-events-none" />
+      <Cpu          className="absolute top-1/2 left-10  w-6  h-6  text-cyan-400/15  rotate-3   pointer-events-none" />
+      <TrendingUp   className="absolute top-1/3 right-10  w-6  h-6  text-orange-400/15 -rotate-3  pointer-events-none" />
+
+      <div className="w-full max-w-md space-y-8 relative">
         <div className="flex flex-col items-center gap-2 text-center">
           <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-white p-1.5">
             <Image src="/logo.png" alt="BIMS School" width={68} height={68} className="object-contain" />

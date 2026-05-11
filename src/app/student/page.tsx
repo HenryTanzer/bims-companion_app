@@ -3,22 +3,25 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
 import {
   Brain, CreditCard, FileText, BarChart2,
-  Trophy, MessageSquare, Flame, Star, Target, Zap
+  Trophy, MessageSquare, Flame, Star, Target, Zap,
+  GraduationCap, Layers, BookOpen, Bell
 } from 'lucide-react'
 
 const XP_PER_LEVEL = 100
 
 const quickLinks = [
-  { href: '/student/quiz', label: 'Quiz', description: 'Test yourself', icon: Brain, color: 'bg-blue-500/10 text-blue-500' },
-  { href: '/student/flashcards', label: 'Flashcards', description: 'Review key terms', icon: CreditCard, color: 'bg-purple-500/10 text-purple-500' },
-  { href: '/student/exam-center', label: 'Exam Centre', description: 'Past papers', icon: FileText, color: 'bg-orange-500/10 text-orange-500' },
-  { href: '/student/progress', label: 'Progress', description: 'Your analytics', icon: BarChart2, color: 'bg-green-500/10 text-green-500' },
-  { href: '/student/leaderboard', label: 'Leaderboard', description: 'Class rankings', icon: Trophy, color: 'bg-yellow-500/10 text-yellow-500' },
-  { href: '/student/study-buddy', label: 'Study Buddy', description: 'AI assistant', icon: MessageSquare, color: 'bg-pink-500/10 text-pink-500' },
-  { href: '/student/daily-challenge', label: 'Daily Challenge', description: '+35 XP · resets daily', icon: Zap, color: 'bg-yellow-500/10 text-yellow-500' },
+  { href: '/student/quiz',            label: 'Quiz',            description: 'Test yourself',       icon: Brain,         bg: 'bg-blue-500/15',   text: 'text-blue-400',   border: 'border-blue-500/20' },
+  { href: '/student/flashcards',      label: 'Flashcards',      description: 'Review key terms',    icon: CreditCard,    bg: 'bg-violet-500/15', text: 'text-violet-400', border: 'border-violet-500/20' },
+  { href: '/student/exam-center',     label: 'Exam Centre',     description: 'Past papers',         icon: FileText,      bg: 'bg-orange-500/15', text: 'text-orange-400', border: 'border-orange-500/20' },
+  { href: '/student/progress',        label: 'Progress',        description: 'Your analytics',      icon: BarChart2,     bg: 'bg-green-500/15',  text: 'text-green-400',  border: 'border-green-500/20' },
+  { href: '/student/leaderboard',     label: 'Leaderboard',     description: 'Class rankings',      icon: Trophy,        bg: 'bg-yellow-500/15', text: 'text-yellow-400', border: 'border-yellow-500/20' },
+  { href: '/student/study-buddy',     label: 'Study Buddy',     description: 'AI assistant',        icon: MessageSquare, bg: 'bg-pink-500/15',   text: 'text-pink-400',   border: 'border-pink-500/20' },
+  { href: '/student/daily-challenge', label: 'Daily Challenge', description: '+35 XP · resets daily', icon: Zap,         bg: 'bg-amber-500/15',  text: 'text-amber-400',  border: 'border-amber-500/20' },
+  { href: '/student/modules',         label: 'Modules',         description: 'Assignments',         icon: Layers,        bg: 'bg-teal-500/15',   text: 'text-teal-400',   border: 'border-teal-500/20' },
+  { href: '/student/review',          label: 'Review',          description: 'Weak areas',          icon: BookOpen,      bg: 'bg-rose-500/15',   text: 'text-rose-400',   border: 'border-rose-500/20' },
+  { href: '/student/notifications',   label: 'Notifications',   description: 'Announcements',       icon: Bell,          bg: 'bg-sky-500/15',    text: 'text-sky-400',    border: 'border-sky-500/20' },
 ]
 
 export default async function StudentDashboard() {
@@ -48,97 +51,108 @@ export default async function StudentDashboard() {
   const enrollments = (enrollmentsRes.data ?? []) as any[]
   const enrolledIds = enrollments.map(e => e.subject_id)
   const allSubjects = (allSubjectsRes.data ?? []) as any[]
+  const enrolledSubjects = allSubjects.filter(s => enrolledIds.includes(s.id))
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <p className="text-muted-foreground text-sm">{greeting}</p>
-        <h1 className="text-2xl font-bold">{firstName}</h1>
-      </div>
 
-      {/* XP + Stats row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="w-4 h-4 text-yellow-500" />
-              <span className="text-xs text-muted-foreground font-medium">Level</span>
-            </div>
-            <p className="text-2xl font-bold">{level}</p>
-            <Progress value={xpPercent} className="h-1.5 mt-2" />
-            <p className="text-xs text-muted-foreground mt-1">{xpIntoLevel}/{XP_PER_LEVEL} XP</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Flame className="w-4 h-4 text-orange-500" />
-              <span className="text-xs text-muted-foreground font-medium">Streak</span>
-            </div>
-            <p className="text-2xl font-bold">{streak}</p>
-            <p className="text-xs text-muted-foreground mt-1">day{streak !== 1 ? 's' : ''} in a row</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-4 h-4 text-blue-500" />
-              <span className="text-xs text-muted-foreground font-medium">Total XP</span>
-            </div>
-            <p className="text-2xl font-bold">{xp}</p>
-            <p className="text-xs text-muted-foreground mt-1">points earned</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Target className="w-4 h-4 text-green-500" />
-              <span className="text-xs text-muted-foreground font-medium">Weekly Goal</span>
-            </div>
-            <p className="text-2xl font-bold">{lessonsThisWeek}/{weeklyGoal}</p>
-            <Progress value={(lessonsThisWeek / weeklyGoal) * 100} className="h-1.5 mt-2" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Enrolled subjects — read-only */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">My Subjects</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {enrolledIds.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              You are not enrolled in any subjects yet. Contact your teacher to be added.
-            </p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {allSubjects.filter(s => enrolledIds.includes(s.id)).map(s => (
-                <Badge key={s.id} variant="secondary" className="text-sm py-1 px-3">
-                  {s.name}
-                </Badge>
-              ))}
-            </div>
+      {/* Hero banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/30 via-primary/10 to-transparent border border-primary/20 p-6">
+        <GraduationCap className="absolute -right-6 -top-6 w-48 h-48 text-primary/8 pointer-events-none" />
+        <p className="text-sm text-primary/70 font-medium">{greeting},</p>
+        <h1 className="text-3xl font-bold mt-0.5">{firstName}</h1>
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          <span className="flex items-center gap-1.5 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full px-3 py-1 text-xs font-semibold">
+            <Star className="w-3 h-3" /> Level {level}
+          </span>
+          <span className="flex items-center gap-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full px-3 py-1 text-xs font-semibold">
+            <Zap className="w-3 h-3" /> {xp} XP
+          </span>
+          {streak > 0 && (
+            <span className="flex items-center gap-1.5 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-full px-3 py-1 text-xs font-semibold">
+              <Flame className="w-3 h-3" /> {streak}d streak
+            </span>
           )}
-        </CardContent>
-      </Card>
+          {enrolledSubjects.map(s => (
+            <span
+              key={s.id}
+              className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold border"
+              style={{ backgroundColor: s.color + '20', color: s.color, borderColor: s.color + '40' }}
+            >
+              {s.name}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Level */}
+        <Card className="overflow-hidden border-yellow-500/20">
+          <CardContent className="pt-4 pb-4 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/15 to-yellow-500/5 pointer-events-none" />
+            <div className="relative">
+              <Star className="w-5 h-5 text-yellow-400 mb-2" />
+              <p className="text-2xl font-bold">{level}</p>
+              <Progress value={xpPercent} className="h-1.5 mt-2" />
+              <p className="text-xs text-muted-foreground mt-1">{xpIntoLevel}/{XP_PER_LEVEL} XP</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Streak */}
+        <Card className="overflow-hidden border-orange-500/20">
+          <CardContent className="pt-4 pb-4 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/15 to-orange-500/5 pointer-events-none" />
+            <div className="relative">
+              <Flame className="w-5 h-5 text-orange-400 mb-2" />
+              <p className="text-2xl font-bold">{streak}</p>
+              <p className="text-xs text-muted-foreground mt-1">day{streak !== 1 ? 's' : ''} in a row</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Total XP */}
+        <Card className="overflow-hidden border-blue-500/20">
+          <CardContent className="pt-4 pb-4 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/15 to-blue-500/5 pointer-events-none" />
+            <div className="relative">
+              <Zap className="w-5 h-5 text-blue-400 mb-2" />
+              <p className="text-2xl font-bold">{xp}</p>
+              <p className="text-xs text-muted-foreground mt-1">total XP earned</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Weekly goal */}
+        <Card className="overflow-hidden border-green-500/20">
+          <CardContent className="pt-4 pb-4 relative">
+            <div className="absolute inset-0 bg-gradient-to-br from-green-500/15 to-green-500/5 pointer-events-none" />
+            <div className="relative">
+              <Target className="w-5 h-5 text-green-400 mb-2" />
+              <p className="text-2xl font-bold">{lessonsThisWeek}/{weeklyGoal}</p>
+              <Progress value={(lessonsThisWeek / weeklyGoal) * 100} className="h-1.5 mt-2" />
+              <p className="text-xs text-muted-foreground mt-1">weekly goal</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Quick links */}
       <div>
         <h2 className="text-sm font-medium text-muted-foreground mb-3">Study Tools</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {quickLinks.map(({ href, label, description, icon: Icon, color }) => (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {quickLinks.map(({ href, label, description, icon: Icon, bg, text, border }) => (
             <Link key={href} href={href}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer group">
-                <CardContent className="pt-5 pb-5">
-                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl mb-3 ${color}`}>
+              <Card className={`hover:shadow-lg transition-all cursor-pointer group h-full border ${border} hover:-translate-y-0.5`}>
+                <CardContent className="pt-4 pb-4">
+                  <div className={`inline-flex items-center justify-center w-11 h-11 rounded-2xl mb-3 ${bg} ${text}`}>
                     <Icon className="w-5 h-5" />
                   </div>
-                  <p className="font-semibold text-sm group-hover:text-primary transition-colors">{label}</p>
+                  <p className={`font-semibold text-sm group-hover:${text} transition-colors`}>{label}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
                 </CardContent>
               </Card>

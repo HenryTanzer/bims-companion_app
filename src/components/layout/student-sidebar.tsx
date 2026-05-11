@@ -39,8 +39,8 @@ export function StudentSidebar() {
   return (
     <aside className="flex flex-col w-64 min-h-screen bg-card border-r border-border shrink-0">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white p-0.5 shrink-0">
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-border bg-gradient-to-r from-primary/10 to-transparent">
+        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white p-0.5 shrink-0 shadow-sm shadow-primary/20">
           <Image src="/logo.png" alt="BIMS School" width={32} height={32} className="object-contain" />
         </div>
         <div>
