@@ -19,7 +19,7 @@ export default async function TeacherAnalytics() {
       : subjectIds.length > 0
         ? supabase.from('quiz_attempts').select('student_id, subject_id, score, total_questions, completed_at').in('subject_id', subjectIds).order('completed_at', { ascending: false })
         : Promise.resolve({ data: [] }),
-    supabase.from('profiles').select('id, full_name').eq('role', 'student'),
+    supabase.from('profiles').select('id, full_name'),
     isAdmin
       ? supabase.from('subjects').select('id, name, color')
       : subjectIds.length > 0
