@@ -44,6 +44,7 @@ export function FlashcardLauncher({ subjects, topics, studentId }: {
   const [loading, setLoading] = useState(false)
   const [xpTotal, setXpTotal] = useState(0)
   const [reviewed, setReviewed] = useState(0)
+  const [pendingReviews, setPendingReviews] = useState<{ flashcard_id: string; confidence: number; next_review_at: string }[]>([])
 
   const filteredTopics = topics.filter(t => t.subject_id === subjectId)
   const selectedSubject = subjects.find(s => s.id === subjectId)
@@ -83,6 +84,7 @@ export function FlashcardLauncher({ subjects, topics, studentId }: {
     setFlipped(false)
     setXpTotal(0)
     setReviewed(0)
+    setPendingReviews([])
     setPhase('study')
     setLoading(false)
   }
@@ -93,16 +95,7 @@ export function FlashcardLauncher({ subjects, topics, studentId }: {
     const nextReview = new Date()
     nextReview.setDate(nextReview.getDate() + daysUntilReview)
 
-    if (navigator.onLine) {
-      await supabase.from('flashcard_reviews').upsert({
-        student_id: studentId,
-        flashcard_id: card.id,
-        confidence,
-        next_review_at: nextReview.toISOString(),
-        last_reviewed_at: new Date().toISOString(),
-        review_count: 1,
-      } as any, { onConflict: 'student_id,flashcard_id' })
-    }
+    const reviewRecord = { flashcard_id: card.id, confidence, next_review_at: nextReview.toISOString() }
 
     const xpGained = 5
     const newXpTotal = xpTotal + xpGained
@@ -110,13 +103,30 @@ export function FlashcardLauncher({ subjects, topics, studentId }: {
     setReviewed(r => r + 1)
 
     if (current + 1 >= cards.length) {
+      const allReviews = [...pendingReviews, reviewRecord]
       if (navigator.onLine) {
+        for (const review of allReviews) {
+          await supabase.from('flashcard_reviews').upsert({
+            student_id: studentId,
+            flashcard_id: review.flashcard_id,
+            confidence: review.confidence,
+            next_review_at: review.next_review_at,
+            last_reviewed_at: new Date().toISOString(),
+            review_count: 1,
+          } as any, { onConflict: 'student_id,flashcard_id' })
+        }
         await updateStudentProgress(studentId, newXpTotal)
       } else {
-        toast.warning('You\'re offline — your XP won\'t be saved until you reconnect.')
+        const { enqueueWrite } = await import('@/lib/offline-db')
+        await enqueueWrite({
+          type: 'flashcard_session',
+          payload: { student_id: studentId, reviews: allReviews, xp_earned: newXpTotal },
+        })
+        toast.info('You\'re offline — your session has been saved and will sync when you reconnect.')
       }
       setPhase('done')
     } else {
+      setPendingReviews(prev => [...prev, reviewRecord])
       setCurrent(c => c + 1)
       setFlipped(false)
     }

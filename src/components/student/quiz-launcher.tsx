@@ -122,7 +122,20 @@ export function QuizLauncher({
     const xpEarned = score * 10 + (perfect ? 25 : 0)
 
     if (!navigator.onLine) {
-      toast.warning('You\'re offline — your score won\'t be saved until you reconnect.')
+      const { enqueueWrite } = await import('@/lib/offline-db')
+      await enqueueWrite({
+        type: 'quiz_attempt',
+        payload: {
+          student_id: studentId,
+          subject_id: subjectId,
+          topic_id: topicId !== 'all' ? topicId : null,
+          score,
+          total_questions: total,
+          answers,
+          xp_earned: xpEarned,
+        },
+      })
+      toast.info('You\'re offline — your result has been saved and will sync when you reconnect.')
     } else {
       await supabase.from('quiz_attempts').insert({
         student_id: studentId,

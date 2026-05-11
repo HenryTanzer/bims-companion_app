@@ -100,12 +100,31 @@ export function ModuleAttempt({
 
   async function submitModule() {
     setSubmitting(true)
-    const finalScore = Object.entries(answers).filter(
-      ([qid, ans]) => {
-        const found = questions.find(q => q.id === qid)
-        return found && found.correct_answer === ans
-      }
-    ).length
+    const finalScore = Object.entries(answers).filter(([qid, ans]) => {
+      const found = questions.find(q => q.id === qid)
+      return found && found.correct_answer === ans
+    }).length
+    const xpEarned = finalScore * 10
+
+    if (!navigator.onLine) {
+      const { enqueueWrite } = await import('@/lib/offline-db')
+      await enqueueWrite({
+        type: 'module_submission',
+        payload: {
+          module_id: moduleId,
+          student_id: studentId,
+          answers,
+          score: finalScore,
+          total_questions: questions.length,
+          xp_earned: xpEarned,
+        },
+      })
+      toast.info('You\'re offline — your submission has been saved and will sync when you reconnect.')
+      setScore(finalScore)
+      setPhase('results')
+      setSubmitting(false)
+      return
+    }
 
     const { error } = await (supabase as any)
       .from('module_submissions')
@@ -124,7 +143,6 @@ export function ModuleAttempt({
       return
     }
 
-    const xpEarned = finalScore * 10
     await updateStudentProgress(studentId, xpEarned)
     setScore(finalScore)
     setPhase('results')
