@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/shared/theme-provider";
+import { ServiceWorkerRegister } from "@/components/shared/service-worker-register";
 import "./globals.css";
 
 const geist = Geist({
@@ -25,6 +26,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <Toaster richColors position="top-right" />
+          <ServiceWorkerRegister />
         </ThemeProvider>
       </body>
     </html>

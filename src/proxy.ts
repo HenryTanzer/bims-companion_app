@@ -27,7 +27,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes — allow unauthenticated
-  const publicRoutes = ['/login', '/signup', '/forgot-password', '/reset-password']
+  const publicRoutes = ['/login', '/signup', '/forgot-password', '/reset-password', '/offline']
   if (publicRoutes.includes(pathname)) {
     if (user) {
       return redirectByRole(request, supabase, user.id)
