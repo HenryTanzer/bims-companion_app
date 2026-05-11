@@ -14,5 +14,6 @@ export default async function RootPage() {
     .single()
 
   const role = (profile as any)?.role
+  if (role === 'admin') redirect('/admin')
   redirect(role === 'teacher' ? '/teacher' : '/student')
 }

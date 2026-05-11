@@ -47,16 +47,26 @@ export async function proxy(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  if (profile) {
-    const role = (profile as any).role
-    // Admins can access all portals — no redirect
-    if (role === 'admin') return supabaseResponse
-    if (pathname.startsWith('/teacher') && role === 'student') {
-      return NextResponse.redirect(new URL('/student', request.url))
+  const role = (profile as any)?.role
+
+  // Admin portal — admin only
+  if (pathname.startsWith('/admin')) {
+    if (role !== 'admin') {
+      return NextResponse.redirect(new URL(role === 'teacher' ? '/teacher' : '/student', request.url))
     }
-    if (pathname.startsWith('/student') && role === 'teacher') {
-      return NextResponse.redirect(new URL('/teacher', request.url))
-    }
+    return supabaseResponse
+  }
+
+  if (role === 'admin') {
+    // Admins can visit teacher and student portals freely (for now)
+    return supabaseResponse
+  }
+
+  if (pathname.startsWith('/teacher') && role === 'student') {
+    return NextResponse.redirect(new URL('/student', request.url))
+  }
+  if (pathname.startsWith('/student') && role === 'teacher') {
+    return NextResponse.redirect(new URL('/teacher', request.url))
   }
 
   return supabaseResponse
@@ -70,7 +80,9 @@ async function redirectByRole(request: NextRequest, supabase: any, userId: strin
     .single()
 
   const role = (profile as any)?.role ?? 'student'
-  const destination = role === 'teacher' || role === 'admin' ? '/teacher' : '/student'
+  let destination = '/student'
+  if (role === 'admin') destination = '/admin'
+  else if (role === 'teacher') destination = '/teacher'
   return NextResponse.redirect(new URL(destination, request.url))
 }
 
