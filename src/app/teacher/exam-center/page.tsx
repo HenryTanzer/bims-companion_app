@@ -7,13 +7,14 @@ export default async function TeacherExamCenter() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const [subjectsRes, papersRes] = await Promise.all([
+  const [subjectsRes, papersRes, topicsRes] = await Promise.all([
     supabase.from('subjects').select('id, name, color'),
     supabase
       .from('past_papers')
       .select('id, subject_id, title, year, paper_number, file_url, created_by, subjects(name)')
       .order('year', { ascending: false })
       .order('paper_number', { ascending: true }),
+    supabase.from('topics').select('id, name, subject_id').order('name'),
   ])
 
   return (
@@ -27,6 +28,7 @@ export default async function TeacherExamCenter() {
       <ExamCenterManager
         subjects={(subjectsRes.data ?? []) as any[]}
         initialPapers={(papersRes.data ?? []) as any[]}
+        topics={(topicsRes.data ?? []) as any[]}
         userId={user.id}
       />
     </div>
