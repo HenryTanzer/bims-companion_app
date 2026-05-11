@@ -8,13 +8,13 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
-  { href: '/teacher', label: 'Dashboard', icon: Home, exact: true },
-  { href: '/teacher/content', label: 'Content', icon: PenSquare },
-  { href: '/teacher/modules', label: 'Modules', icon: Layers },
-  { href: '/teacher/students', label: 'Students', icon: Users },
-  { href: '/teacher/exam-center', label: 'Exam Centre', icon: FileText },
-  { href: '/teacher/analytics', label: 'Analytics', icon: BarChart2 },
-  { href: '/teacher/messages', label: 'Messages', icon: MessageSquare },
+  { href: '/teacher', label: 'Dashboard', icon: Home, exact: true, tutorial: 'nav-dashboard' },
+  { href: '/teacher/content', label: 'Content', icon: PenSquare, tutorial: 'nav-content' },
+  { href: '/teacher/modules', label: 'Modules', icon: Layers, tutorial: 'nav-modules' },
+  { href: '/teacher/students', label: 'Students', icon: Users, tutorial: 'nav-students' },
+  { href: '/teacher/exam-center', label: 'Exam Centre', icon: FileText, tutorial: 'nav-exam-center' },
+  { href: '/teacher/analytics', label: 'Analytics', icon: BarChart2, tutorial: 'nav-analytics' },
+  { href: '/teacher/messages', label: 'Messages', icon: MessageSquare, tutorial: 'nav-messages' },
 ]
 
 export function TeacherSidebar() {
@@ -41,12 +41,13 @@ export function TeacherSidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ href, label, icon: Icon, exact }) => {
+        {navItems.map(({ href, label, icon: Icon, exact, tutorial }) => {
           const active = exact ? pathname === href : pathname.startsWith(href)
           return (
             <Link
               key={href}
               href={href}
+              data-tutorial={tutorial}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 active
@@ -64,6 +65,7 @@ export function TeacherSidebar() {
       <div className="px-3 pb-4 border-t border-border pt-3 space-y-1">
         <Link
           href="/teacher/profile"
+          data-tutorial="nav-profile"
           className={cn(
             'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
             pathname.startsWith('/teacher/profile')

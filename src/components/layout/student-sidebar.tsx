@@ -12,17 +12,17 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 const navItems = [
-  { href: '/student', label: 'Home', icon: Home, exact: true },
-  { href: '/student/quiz', label: 'Quiz', icon: Brain },
-  { href: '/student/flashcards', label: 'Flashcards', icon: CreditCard },
-  { href: '/student/exam-center', label: 'Exam Centre', icon: FileText },
-  { href: '/student/modules', label: 'Modules', icon: Layers },
-  { href: '/student/progress', label: 'Progress', icon: BarChart2 },
-  { href: '/student/leaderboard', label: 'Leaderboard', icon: Trophy },
-  { href: '/student/study-buddy', label: 'Study Buddy', icon: MessageSquare },
-  { href: '/student/daily-challenge', label: 'Daily Challenge', icon: Zap },
-  { href: '/student/review', label: 'Review', icon: BookOpen },
-  { href: '/student/notifications', label: 'Notifications', icon: Bell },
+  { href: '/student', label: 'Home', icon: Home, exact: true, tutorial: 'nav-home' },
+  { href: '/student/quiz', label: 'Quiz', icon: Brain, tutorial: 'nav-quiz' },
+  { href: '/student/flashcards', label: 'Flashcards', icon: CreditCard, tutorial: 'nav-flashcards' },
+  { href: '/student/exam-center', label: 'Exam Centre', icon: FileText, tutorial: 'nav-exam-center' },
+  { href: '/student/modules', label: 'Modules', icon: Layers, tutorial: 'nav-modules' },
+  { href: '/student/progress', label: 'Progress', icon: BarChart2, tutorial: 'nav-progress' },
+  { href: '/student/leaderboard', label: 'Leaderboard', icon: Trophy, tutorial: 'nav-leaderboard' },
+  { href: '/student/study-buddy', label: 'Study Buddy', icon: MessageSquare, tutorial: 'nav-study-buddy' },
+  { href: '/student/daily-challenge', label: 'Daily Challenge', icon: Zap, tutorial: 'nav-daily-challenge' },
+  { href: '/student/review', label: 'Review', icon: BookOpen, tutorial: 'nav-review' },
+  { href: '/student/notifications', label: 'Notifications', icon: Bell, tutorial: 'nav-notifications' },
 ]
 
 export function StudentSidebar() {
@@ -51,12 +51,13 @@ export function StudentSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {navItems.map(({ href, label, icon: Icon, exact }) => {
+        {navItems.map(({ href, label, icon: Icon, exact, tutorial }) => {
           const active = exact ? pathname === href : pathname.startsWith(href)
           return (
             <Link
               key={href}
               href={href}
+              data-tutorial={tutorial}
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
                 active
@@ -75,6 +76,7 @@ export function StudentSidebar() {
       <div className="px-3 pb-4 border-t border-border pt-3 space-y-1">
         <Link
           href="/student/profile"
+          data-tutorial="nav-profile"
           className={cn(
             'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
             pathname.startsWith('/student/profile')

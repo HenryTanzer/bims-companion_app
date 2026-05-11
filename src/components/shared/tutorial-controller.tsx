@@ -2,143 +2,118 @@
 
 import { useEffect, useState } from 'react'
 import { TutorialModal, type TutorialStep } from './tutorial-modal'
-import {
-  Home, Brain, CreditCard, Zap, Layers, MessageSquare,
-  BookOpen, Trophy, GraduationCap, PenSquare, Users, FileText,
-  BarChart2, Bell,
-} from 'lucide-react'
 
 const STORAGE_KEY = 'bims_tutorial_v1'
 
 const STUDENT_STEPS: TutorialStep[] = [
   {
-    icon: GraduationCap,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
     title: 'Welcome to BIMS Companion',
-    description: 'Your personalised A-Level study platform. Complete activities to earn XP, level up, and climb the leaderboard. Let\'s take a quick tour.',
+    description: 'Your personalised A-Level study platform. Earn XP, build streaks, and climb the leaderboard. This quick tour will show you where everything lives.',
   },
   {
-    icon: Home,
-    iconBg: 'bg-blue-500/10',
-    iconColor: 'text-blue-500',
-    title: 'Your Dashboard',
-    description: 'See your level, XP, streak, and weekly goal at a glance. Your streak increases every day you study — try not to break the chain!',
+    targetSelector: 'nav-home',
+    tooltipSide: 'right',
+    title: 'Dashboard',
+    description: 'Your home screen — see your current level, XP, streak, and weekly goal at a glance. Come here to get an overview of your progress.',
   },
   {
-    icon: Brain,
-    iconBg: 'bg-purple-500/10',
-    iconColor: 'text-purple-500',
+    targetSelector: 'nav-quiz',
+    tooltipSide: 'right',
     title: 'Quiz',
-    description: 'Test your knowledge with multiple-choice questions from your enrolled subjects. Earn +10 XP per correct answer and a +25 XP bonus for a perfect score.',
+    description: 'Test your knowledge with MCQs from your enrolled subjects. Earn +10 XP per correct answer and a +25 XP bonus for a perfect score.',
   },
   {
-    icon: CreditCard,
-    iconBg: 'bg-pink-500/10',
-    iconColor: 'text-pink-500',
+    targetSelector: 'nav-flashcards',
+    tooltipSide: 'right',
     title: 'Flashcards',
-    description: 'Review key terms using spaced repetition. Rate your confidence after each card — ones you find hard come back sooner.',
+    description: 'Review key terms with spaced repetition. Rate your confidence after each card — ones you find hard come back sooner so you master them faster.',
   },
   {
-    icon: Zap,
-    iconBg: 'bg-yellow-500/10',
-    iconColor: 'text-yellow-500',
+    targetSelector: 'nav-daily-challenge',
+    tooltipSide: 'right',
     title: 'Daily Challenge',
-    description: 'One new question every day. Answer it correctly for +35 XP. You only get one attempt per day — make it count!',
+    description: 'One new question every day. Earn +35 XP for a correct answer. You only get one attempt — come back each day to keep your streak alive.',
   },
   {
-    icon: Layers,
-    iconBg: 'bg-orange-500/10',
-    iconColor: 'text-orange-500',
+    targetSelector: 'nav-modules',
+    tooltipSide: 'right',
     title: 'Modules',
-    description: 'Assignments set by your teacher with a due date. Work through each question and submit before the deadline. XP is awarded for completion.',
+    description: 'Assignments set by your teacher with a due date. Work through each question and submit before the deadline.',
   },
   {
-    icon: MessageSquare,
-    iconBg: 'bg-green-500/10',
-    iconColor: 'text-green-500',
+    targetSelector: 'nav-study-buddy',
+    tooltipSide: 'right',
     title: 'Study Buddy',
-    description: 'Your AI tutor — ask it to explain any concept, work through past paper questions, or clarify definitions. It only discusses your A-Level subject.',
+    description: 'Your AI tutor. Ask it to explain concepts, work through past paper questions, or clarify definitions. It stays strictly on your A-Level subject.',
   },
   {
-    icon: BookOpen,
-    iconBg: 'bg-cyan-500/10',
-    iconColor: 'text-cyan-500',
+    targetSelector: 'nav-review',
+    tooltipSide: 'right',
     title: 'Review',
-    description: 'Questions you\'ve answered incorrectly in quizzes appear here. Practice them until you get them right — they drop off your list once you\'ve mastered them.',
+    description: 'Questions you\'ve answered incorrectly in quizzes appear here. Practice them in your own time — they drop off once you get them right.',
   },
   {
-    icon: Bell,
-    iconBg: 'bg-indigo-500/10',
-    iconColor: 'text-indigo-500',
+    targetSelector: 'nav-exam-center',
+    tooltipSide: 'right',
+    title: 'Exam Centre',
+    description: 'Access past papers uploaded by your teacher. Open them in a new tab to read and practise exam-style questions.',
+  },
+  {
+    targetSelector: 'nav-notifications',
+    tooltipSide: 'right',
     title: 'Notifications',
-    description: 'Announcements from your teachers appear here — important dates, new content, and reminders.',
+    description: 'Announcements from your teachers appear here — important dates, reminders, and class updates.',
   },
   {
-    icon: Trophy,
-    iconBg: 'bg-yellow-500/10',
-    iconColor: 'text-yellow-500',
     title: 'You\'re ready!',
-    description: 'Study every day to build your streak, complete the Daily Challenge, and keep climbing the leaderboard. Good luck with your A-Levels!',
+    description: 'Study every day to build your streak, complete the Daily Challenge, and climb the leaderboard. Good luck with your A-Levels!',
   },
 ]
 
 const TEACHER_STEPS: TutorialStep[] = [
   {
-    icon: GraduationCap,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
     title: 'Welcome to the Teacher Portal',
-    description: 'Manage your class, create content, and track student progress — all in one place. Here\'s a quick overview of what\'s available.',
+    description: 'Manage your class, create content, and track student progress — all in one place. Here\'s where everything lives.',
   },
   {
-    icon: PenSquare,
-    iconBg: 'bg-purple-500/10',
-    iconColor: 'text-purple-500',
+    targetSelector: 'nav-content',
+    tooltipSide: 'right',
     title: 'Content',
-    description: 'Create quiz questions, flashcards, and topics. All content is subject-specific and immediately available to enrolled students in quizzes and flashcard sessions.',
+    description: 'Create quiz questions, flashcards, and topics. All content is subject-specific and available to enrolled students immediately.',
   },
   {
-    icon: Layers,
-    iconBg: 'bg-orange-500/10',
-    iconColor: 'text-orange-500',
+    targetSelector: 'nav-modules',
+    tooltipSide: 'right',
     title: 'Modules',
-    description: 'Build assignments from your quiz questions, set a due date, and publish to a subject. View a per-module gradebook to see every student\'s score.',
+    description: 'Build assignments from your quiz questions, set a due date, and publish to a subject. View a per-module gradebook to track every student\'s score.',
   },
   {
-    icon: Users,
-    iconBg: 'bg-blue-500/10',
-    iconColor: 'text-blue-500',
+    targetSelector: 'nav-students',
+    tooltipSide: 'right',
     title: 'Students',
-    description: 'View all students with their XP, streak, and quiz history. Manage which subjects each student is enrolled in — enrolments can be changed at any time.',
+    description: 'View all students with their XP, streak, and quiz history. Manage which subjects each student is enrolled in.',
   },
   {
-    icon: FileText,
-    iconBg: 'bg-red-500/10',
-    iconColor: 'text-red-500',
+    targetSelector: 'nav-exam-center',
+    tooltipSide: 'right',
     title: 'Exam Centre',
-    description: 'Upload past papers as PDFs. Students can open them anytime. Use the AI \'Extract Qs\' button to automatically pull MCQ questions from a paper into your Content Library.',
+    description: 'Upload past papers as PDFs for students to access. Use the AI \'Extract Qs\' button to pull MCQ questions directly from a PDF into your Content Library.',
   },
   {
-    icon: MessageSquare,
-    iconBg: 'bg-green-500/10',
-    iconColor: 'text-green-500',
+    targetSelector: 'nav-messages',
+    tooltipSide: 'right',
     title: 'Messages',
-    description: 'Send announcements to a subject group or all students at once. Students see your messages in their Notifications tab immediately.',
+    description: 'Send announcements to a subject group or all students at once. Students see them in their Notifications tab immediately.',
   },
   {
-    icon: BarChart2,
-    iconBg: 'bg-cyan-500/10',
-    iconColor: 'text-cyan-500',
+    targetSelector: 'nav-analytics',
+    tooltipSide: 'right',
     title: 'Analytics',
-    description: 'Track total quiz attempts, average scores, active students, and XP earned — broken down by subject. See top performers and a live feed of recent quiz activity.',
+    description: 'Track quiz attempts, average scores, active students, and XP — broken down by subject. See top performers and a live feed of recent quiz activity.',
   },
   {
-    icon: Trophy,
-    iconBg: 'bg-yellow-500/10',
-    iconColor: 'text-yellow-500',
     title: 'You\'re all set!',
-    description: 'Content you create is available to students instantly. Students earn XP for every activity, building streaks and competing on the leaderboard. Welcome to BIMS Companion!',
+    description: 'Content you create is available to students instantly. Students earn XP for every activity, building streaks and competing on the leaderboard.',
   },
 ]
 
@@ -146,14 +121,9 @@ export function TutorialController({ portal }: { portal: 'student' | 'teacher' }
   const [show, setShow] = useState(false)
 
   useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) {
-      setShow(true)
-    }
+    if (!localStorage.getItem(STORAGE_KEY)) setShow(true)
 
-    function handleLaunch() {
-      setShow(true)
-    }
-
+    function handleLaunch() { setShow(true) }
     window.addEventListener('bims:launch-tutorial', handleLaunch)
     return () => window.removeEventListener('bims:launch-tutorial', handleLaunch)
   }, [])
@@ -164,7 +134,5 @@ export function TutorialController({ portal }: { portal: 'student' | 'teacher' }
   }
 
   if (!show) return null
-
-  const steps = portal === 'student' ? STUDENT_STEPS : TEACHER_STEPS
-  return <TutorialModal steps={steps} onClose={handleClose} />
+  return <TutorialModal steps={portal === 'student' ? STUDENT_STEPS : TEACHER_STEPS} onClose={handleClose} />
 }
