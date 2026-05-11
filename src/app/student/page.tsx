@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress'
 import {
   Brain, CreditCard, FileText, BarChart2,
   Trophy, MessageSquare, Flame, Star, Target, Zap,
-  GraduationCap, Layers, BookOpen, Bell
+  GraduationCap, Layers, BookOpen, Bell, Timer
 } from 'lucide-react'
 
 const XP_PER_LEVEL = 100
@@ -19,6 +19,7 @@ const quickLinks = [
   { href: '/student/leaderboard',     label: 'Leaderboard',     description: 'Class rankings',      icon: Trophy,        bg: 'bg-yellow-500/15', text: 'text-yellow-400', border: 'border-yellow-500/20' },
   { href: '/student/study-buddy',     label: 'Study Buddy',     description: 'AI assistant',        icon: MessageSquare, bg: 'bg-pink-500/15',   text: 'text-pink-400',   border: 'border-pink-500/20' },
   { href: '/student/daily-challenge', label: 'Daily Challenge', description: '+35 XP · resets daily', icon: Zap,         bg: 'bg-amber-500/15',  text: 'text-amber-400',  border: 'border-amber-500/20' },
+  { href: '/student/study-timer',     label: 'Study Timer',     description: 'Timed focus sessions', icon: Timer,        bg: 'bg-cyan-500/15',   text: 'text-cyan-400',   border: 'border-cyan-500/20' },
   { href: '/student/modules',         label: 'Modules',         description: 'Assignments',         icon: Layers,        bg: 'bg-teal-500/15',   text: 'text-teal-400',   border: 'border-teal-500/20' },
   { href: '/student/review',          label: 'Review',          description: 'Weak areas',          icon: BookOpen,      bg: 'bg-rose-500/15',   text: 'text-rose-400',   border: 'border-rose-500/20' },
   { href: '/student/notifications',   label: 'Notifications',   description: 'Announcements',       icon: Bell,          bg: 'bg-sky-500/15',    text: 'text-sky-400',    border: 'border-sky-500/20' },

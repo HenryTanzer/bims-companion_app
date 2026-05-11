@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import {
   Home, Brain, CreditCard, FileText,
-  BarChart2, Trophy, MessageSquare, Bell, Zap, BookOpen, LogOut, UserCircle, Layers
+  BarChart2, Trophy, MessageSquare, Bell, Zap, BookOpen, LogOut, UserCircle, Layers, Timer
 } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -21,6 +21,7 @@ const navItems = [
   { href: '/student/leaderboard', label: 'Leaderboard', icon: Trophy, tutorial: 'nav-leaderboard' },
   { href: '/student/study-buddy', label: 'Study Buddy', icon: MessageSquare, tutorial: 'nav-study-buddy' },
   { href: '/student/daily-challenge', label: 'Daily Challenge', icon: Zap, tutorial: 'nav-daily-challenge' },
+  { href: '/student/study-timer',     label: 'Study Timer',     icon: Timer, tutorial: 'nav-study-timer' },
   { href: '/student/review', label: 'Review', icon: BookOpen, tutorial: 'nav-review' },
   { href: '/student/notifications', label: 'Notifications', icon: Bell, tutorial: 'nav-notifications' },
 ]
