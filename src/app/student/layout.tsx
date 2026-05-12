@@ -24,7 +24,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex items-start min-h-screen bg-background">
       <StudentSidebar />
       <OfflineSync studentId={user.id} />
       <OfflineQueueSync />

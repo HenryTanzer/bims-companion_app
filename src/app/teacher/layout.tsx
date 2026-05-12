@@ -25,7 +25,7 @@ export default async function TeacherLayout({ children }: { children: React.Reac
   const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex items-start min-h-screen bg-background">
       <TeacherSidebar isAdmin={role === 'admin'} />
       <TutorialController portal="teacher" />
       <div className="flex flex-col flex-1 min-w-0">

@@ -21,7 +21,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex items-start min-h-screen bg-background">
       <AdminSidebar />
       <div className="flex flex-col flex-1 min-w-0">
         <header className="flex items-center justify-between pl-14 pr-4 md:px-6 py-3 border-b border-border bg-card/50 backdrop-blur sticky top-0 z-10">
