@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, Users, GraduationCap, BookOpen, UserCircle, LogOut, Menu, X } from 'lucide-react'
@@ -19,6 +19,17 @@ export function AdminSidebar() {
   const router = useRouter()
   const supabase = createClient()
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    function onOpen() { if (window.innerWidth < 768) setOpen(true) }
+    function onClose() { if (window.innerWidth < 768) setOpen(false) }
+    window.addEventListener('bims:open-sidebar', onOpen)
+    window.addEventListener('bims:close-sidebar', onClose)
+    return () => {
+      window.removeEventListener('bims:open-sidebar', onOpen)
+      window.removeEventListener('bims:close-sidebar', onClose)
+    }
+  }, [])
 
   function isActive(href: string, exact?: boolean) {
     return exact ? pathname === href : pathname.startsWith(href)

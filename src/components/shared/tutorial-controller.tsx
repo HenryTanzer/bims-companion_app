@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react'
 import { TutorialModal, type TutorialStep } from './tutorial-modal'
 
-const STORAGE_KEY = 'bims_tutorial_v1'
+const STORAGE_KEYS = {
+  student: 'bims_student_tutorial_v1',
+  teacher: 'bims_teacher_tutorial_v1',
+}
 
 const STUDENT_STEPS: TutorialStep[] = [
   {
@@ -119,18 +122,29 @@ const TEACHER_STEPS: TutorialStep[] = [
 
 export function TutorialController({ portal }: { portal: 'student' | 'teacher' }) {
   const [show, setShow] = useState(false)
+  const storageKey = STORAGE_KEYS[portal]
+
+  function openAndShow() {
+    if (window.innerWidth < 768) {
+      window.dispatchEvent(new CustomEvent('bims:open-sidebar'))
+      setTimeout(() => setShow(true), 350)
+    } else {
+      setShow(true)
+    }
+  }
 
   useEffect(() => {
-    if (!localStorage.getItem(STORAGE_KEY)) setShow(true)
+    if (!localStorage.getItem(storageKey)) openAndShow()
 
-    function handleLaunch() { setShow(true) }
+    function handleLaunch() { openAndShow() }
     window.addEventListener('bims:launch-tutorial', handleLaunch)
     return () => window.removeEventListener('bims:launch-tutorial', handleLaunch)
   }, [])
 
   function handleClose() {
-    localStorage.setItem(STORAGE_KEY, 'done')
+    localStorage.setItem(storageKey, 'done')
     setShow(false)
+    window.dispatchEvent(new CustomEvent('bims:close-sidebar'))
   }
 
   if (!show) return null
