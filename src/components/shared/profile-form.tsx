@@ -199,7 +199,8 @@ export function ProfileForm({
             variant="outline"
             className="shrink-0 gap-2"
             onClick={() => {
-              localStorage.removeItem('bims_tutorial_v1')
+              localStorage.removeItem('bims_student_tutorial_v1')
+              localStorage.removeItem('bims_teacher_tutorial_v1')
               window.dispatchEvent(new CustomEvent('bims:launch-tutorial'))
             }}
           >
