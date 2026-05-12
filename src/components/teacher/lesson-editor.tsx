@@ -14,7 +14,7 @@ import {
   ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown,
   Type, Heading2, ImageIcon, Video, Table2, List, MessageSquare,
   Minus, FileText, GripVertical, CheckCircle2, Link2, Unlink,
-  Eye, EyeOff, Save, Loader2,
+  Eye, EyeOff, Save, Loader2, Sparkles,
 } from 'lucide-react'
 import type { ContentBlock, YearGroup } from '@/types/database'
 import type { LoadedLesson } from '@/app/teacher/curriculum/page'
@@ -98,6 +98,8 @@ export function LessonEditor({
   const [showBlockPicker, setShowBlockPicker] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState<string | null>(null) // block _id
+  const [importing, setImporting] = useState(false)
+  const pdfInputRef = useRef<HTMLInputElement>(null)
 
   // Resources tab
   const [resourcesLoaded, setResourcesLoaded] = useState(false)
@@ -246,6 +248,40 @@ export function LessonEditor({
     setSaving(false)
   }
 
+  // ── AI import ─────────────────────────────────────────────────────────────
+  async function importFromPdf(file: File) {
+    if (blocks.length > 0) {
+      const ok = window.confirm(
+        `This will replace your current ${blocks.length} block${blocks.length !== 1 ? 's' : ''} with AI-generated content. Continue?`
+      )
+      if (!ok) return
+    }
+    setImporting(true)
+    try {
+      const buffer = await file.arrayBuffer()
+      const base64 = Buffer.from(buffer).toString('base64')
+      const res = await fetch('/api/parse-textbook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64, mimeType: file.type || 'application/pdf' }),
+      })
+      const json = await res.json()
+      if (!res.ok) { toast.error(json.error ?? 'Import failed'); return }
+      const imported: BlockWithId[] = (json.blocks as ContentBlock[]).map(b => ({ ...b, _id: uid() }))
+      if (imported.length === 0) {
+        toast.error('No content could be extracted from this PDF')
+        return
+      }
+      setBlocks(imported)
+      toast.success(`${imported.length} blocks imported — review and edit before publishing`)
+    } catch {
+      toast.error('Something went wrong during import')
+    } finally {
+      setImporting(false)
+      if (pdfInputRef.current) pdfInputRef.current.value = ''
+    }
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-0">
@@ -336,12 +372,41 @@ export function LessonEditor({
 
           {/* Content blocks */}
           <div className="space-y-3">
-            <h3 className="text-sm font-semibold">Lesson Content</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-semibold">Lesson Content</h3>
+              <div className="flex-1" />
+              <input
+                ref={pdfInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0]
+                  if (file) importFromPdf(file)
+                }}
+              />
+              <button
+                onClick={() => pdfInputRef.current?.click()}
+                disabled={importing}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+              >
+                {importing
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Sparkles className="w-3.5 h-3.5" />}
+                {importing ? 'Importing…' : 'Import from PDF'}
+              </button>
+            </div>
 
-            {blocks.length === 0 && (
+            {blocks.length === 0 && !importing && (
               <p className="text-sm text-muted-foreground">
-                No content yet. Add a block below to start building this lesson.
+                No content yet. Add a block below or import from a PDF to get started.
               </p>
+            )}
+            {importing && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Reading PDF and generating lesson blocks…
+              </div>
             )}
 
             {blocks.map((block, idx) => {
