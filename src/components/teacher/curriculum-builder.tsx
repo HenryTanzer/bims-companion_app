@@ -9,9 +9,12 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import {
   ChevronRight, ChevronDown, Plus, Trash2, Pencil, BookOpen,
-  Eye, EyeOff, GripVertical,
+  Eye, EyeOff, GripVertical, Sparkles,
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { LessonEditor } from './lesson-editor'
+import { TextbookImportWizard } from './textbook-import-wizard'
+import type { ExistingImportJob } from './textbook-import-wizard'
 import type { LoadedUnit, LoadedTopic, LoadedLesson } from '@/app/teacher/curriculum/page'
 import type { YearGroup } from '@/types/database'
 
@@ -24,14 +27,17 @@ const YEAR_GROUP_COLORS: Record<YearGroup, string> = {
 }
 
 export function CurriculumBuilder({
-  initialUnits, subjects, teacherId,
+  initialUnits, subjects, teacherId, existingImportJobs,
 }: {
   initialUnits: LoadedUnit[]
   subjects: Subject[]
   teacherId: string
+  existingImportJobs: ExistingImportJob[]
 }) {
   const supabase = createClient()
+  const router = useRouter()
   const [units, setUnits] = useState<LoadedUnit[]>(initialUnits)
+  const [importingFor, setImportingFor] = useState<{ subjectId: string; subjectName: string } | null>(null)
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set())
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set())
   const [editingLesson, setEditingLesson] = useState<{
@@ -236,6 +242,21 @@ export function CurriculumBuilder({
     toast.success(editingLesson?.lesson ? 'Lesson updated' : 'Lesson created')
   }
 
+  // ── Textbook import wizard ────────────────────────────────────────────────
+  if (importingFor) {
+    const existingJob = existingImportJobs.find(j => j.subject_id === importingFor.subjectId) ?? null
+    return (
+      <TextbookImportWizard
+        subjectId={importingFor.subjectId}
+        subjectName={importingFor.subjectName}
+        teacherId={teacherId}
+        existingJob={existingJob ? { id: existingJob.id, subject_id: existingJob.subject_id, status: existingJob.status, outline: existingJob.outline, file_url: existingJob.file_url } : null}
+        onCancel={() => setImportingFor(null)}
+        onComplete={() => { setImportingFor(null); router.refresh() }}
+      />
+    )
+  }
+
   // ── Lesson editor view ─────────────────────────────────────────────────────
   if (editingLesson) {
     return (
@@ -264,11 +285,28 @@ export function CurriculumBuilder({
         </p>
       )}
 
-      {/* Add unit button */}
+      {/* Toolbar: Add Unit + Import Textbook */}
       {subjects.length > 0 && !showNewUnit && (
-        <Button variant="outline" onClick={() => setShowNewUnit(true)}>
-          <Plus className="w-4 h-4 mr-2" /> Add Unit
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => setShowNewUnit(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Add Unit
+          </Button>
+          {subjects.map(s => {
+            const job = existingImportJobs.find(j => j.subject_id === s.id)
+            const isResume = job && job.status !== 'done'
+            return (
+              <Button
+                key={s.id}
+                variant="outline"
+                onClick={() => setImportingFor({ subjectId: s.id, subjectName: s.name })}
+                className="gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                {isResume ? `Resume ${s.name} Import` : subjects.length > 1 ? `Import ${s.name} Textbook` : 'Import Textbook'}
+              </Button>
+            )
+          })}
+        </div>
       )}
 
       {/* New unit form */}

@@ -40,7 +40,7 @@ export default async function CurriculumPage() {
 
   const { subjectIds, isAdmin } = await getTeacherContext(supabase, user.id)
 
-  const [subjectsRes, unitsRes] = await Promise.all([
+  const [subjectsRes, unitsRes, importJobsRes] = await Promise.all([
     isAdmin
       ? (supabase as any).from('subjects').select('id, name, color')
       : subjectIds.length > 0
@@ -51,6 +51,12 @@ export default async function CurriculumPage() {
       : subjectIds.length > 0
         ? (supabase as any).from('curriculum_units').select('*').in('subject_id', subjectIds).order('position')
         : Promise.resolve({ data: [] }),
+    // Fetch any incomplete import jobs for this teacher
+    (supabase as any)
+      .from('curriculum_import_jobs')
+      .select('id, subject_id, status, outline, file_url')
+      .eq('teacher_id', user.id)
+      .neq('status', 'done'),
   ])
 
   const units: any[] = unitsRes.data ?? []
@@ -91,6 +97,7 @@ export default async function CurriculumPage() {
         initialUnits={nestedUnits}
         subjects={(subjectsRes.data ?? []) as { id: string; name: string; color: string }[]}
         teacherId={user.id}
+        existingImportJobs={(importJobsRes.data ?? []) as any[]}
       />
     </div>
   )
