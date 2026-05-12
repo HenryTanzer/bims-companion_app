@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { CheckCircle2, XCircle, Trophy, Zap, RotateCcw, ArrowRight } from 'lucide-react'
+import { CheckCircle2, XCircle, Trophy, Zap, RotateCcw, ArrowRight, BookOpen } from 'lucide-react'
+import Link from 'next/link'
 import { toast } from 'sonner'
 import { updateStudentProgress } from '@/lib/progress'
 
@@ -21,6 +22,8 @@ type Question = {
   correct_answer: number
   explanation: string | null
   difficulty: string
+  lesson_id: string | null
+  lesson_title: string | null
 }
 
 type Phase = 'setup' | 'quiz' | 'results'
@@ -68,11 +71,11 @@ export function QuizLauncher({
         setLoading(false)
         return
       }
-      data = offline as Question[]
+      data = offline.map(q => ({ ...q, lesson_id: null, lesson_title: null })) as Question[]
     } else {
-      let query = supabase
+      let query = (supabase as any)
         .from('quiz_questions')
-        .select('id, question, options, correct_answer, explanation, difficulty')
+        .select('id, question, options, correct_answer, explanation, difficulty, lesson_id, curriculum_lessons(title)')
         .eq('subject_id', subjectId)
       if (topicId !== 'all') query = query.eq('topic_id', topicId)
       const res = await query.limit(10)
@@ -81,7 +84,10 @@ export function QuizLauncher({
         setLoading(false)
         return
       }
-      data = res.data as Question[]
+      data = (res.data as any[]).map((q: any) => ({
+        ...q,
+        lesson_title: q.curriculum_lessons?.title ?? null,
+      })) as Question[]
     }
 
     const shuffled = [...data].sort(() => Math.random() - 0.5).slice(0, 10)
@@ -304,6 +310,14 @@ export function QuizLauncher({
     const xpEarned = score * 10 + (perfect ? 25 : 0)
     const pct = Math.round((score / total) * 100)
 
+    // Collect unique lessons for wrong answers
+    const reviewLessons = Array.from(
+      questions
+        .filter(q => answers[q.id] !== q.correct_answer && q.lesson_id && q.lesson_title)
+        .reduce((map, q) => { map.set(q.lesson_id!, q.lesson_title!); return map }, new Map<string, string>())
+        .entries()
+    ).map(([id, title]) => ({ id, title }))
+
     return (
       <Card>
         <CardContent className="pt-8 pb-8 text-center space-y-6">
@@ -349,6 +363,26 @@ export function QuizLauncher({
               Retry Same Quiz
             </Button>
           </div>
+
+          {reviewLessons.length > 0 && (
+            <div className="text-left space-y-2">
+              <p className="text-sm font-semibold text-muted-foreground">
+                Review these lessons to strengthen your understanding:
+              </p>
+              {reviewLessons.map(({ id, title }) => (
+                <Link key={id} href="/student/curriculum">
+                  <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border bg-muted/40 hover:bg-accent transition-colors cursor-pointer">
+                    <BookOpen className="w-4 h-4 text-primary shrink-0" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium">{title}</p>
+                      <p className="text-xs text-muted-foreground">Go to Curriculum → find this lesson</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground ml-auto" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     )

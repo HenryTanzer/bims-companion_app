@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import {
   Home, Brain, CreditCard, FileText,
   BarChart2, Trophy, MessageSquare, Bell, Zap, BookOpen, LogOut, UserCircle, Layers, Timer,
-  Menu, X
+  Menu, X, GraduationCap,
 } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation'
 
 const navItems = [
   { href: '/student', label: 'Home', icon: Home, exact: true, tutorial: 'nav-home' },
+  { href: '/student/curriculum', label: 'Curriculum', icon: GraduationCap, tutorial: 'nav-curriculum' },
   { href: '/student/quiz', label: 'Quiz', icon: Brain, tutorial: 'nav-quiz' },
   { href: '/student/flashcards', label: 'Flashcards', icon: CreditCard, tutorial: 'nav-flashcards' },
   { href: '/student/exam-center', label: 'Exam Centre', icon: FileText, tutorial: 'nav-exam-center' },

@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Home, PenSquare, Users, FileText, BarChart2, MessageSquare, LogOut, UserCircle, Layers, Shield, Menu, X } from 'lucide-react'
+import { Home, PenSquare, Users, FileText, BarChart2, MessageSquare, LogOut, UserCircle, Layers, Shield, Menu, X, GraduationCap } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
 const navItems = [
   { href: '/teacher', label: 'Dashboard', icon: Home, exact: true, tutorial: 'nav-dashboard' },
+  { href: '/teacher/curriculum', label: 'Curriculum', icon: GraduationCap, tutorial: 'nav-curriculum' },
   { href: '/teacher/content', label: 'Content', icon: PenSquare, tutorial: 'nav-content' },
   { href: '/teacher/modules', label: 'Modules', icon: Layers, tutorial: 'nav-modules' },
   { href: '/teacher/students', label: 'Students', icon: Users, tutorial: 'nav-students' },

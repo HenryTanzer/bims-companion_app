@@ -1,5 +1,17 @@
 export type UserRole = 'student' | 'teacher' | 'admin'
 export type SubjectName = 'IT' | 'Business' | 'Biology'
+export type YearGroup = 'Year 12' | 'Year 13' | 'Both'
+
+export type ContentBlock =
+  | { type: 'text';    content: string }
+  | { type: 'heading'; content: string; level: 2 | 3 }
+  | { type: 'image';   url: string; caption?: string }
+  | { type: 'video';   url: string; caption?: string }
+  | { type: 'table';   headers: string[]; rows: string[][] }
+  | { type: 'list';    style: 'bullet' | 'numbered'; items: string[] }
+  | { type: 'callout'; variant: 'tip' | 'info' | 'warning' | 'key-term'; content: string; title?: string }
+  | { type: 'divider' }
+  | { type: 'file';    url: string; name: string }
 
 export interface Database {
   public: {
@@ -54,7 +66,7 @@ export interface Database {
       quiz_questions: {
         Row: {
           id: string
-          topic_id: string
+          topic_id: string | null
           subject_id: string
           question: string
           options: string[]
@@ -63,6 +75,7 @@ export interface Database {
           difficulty: 'easy' | 'medium' | 'hard'
           created_by: string
           created_at: string
+          lesson_id: string | null
         }
         Insert: Omit<Database['public']['Tables']['quiz_questions']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['quiz_questions']['Insert']>
@@ -85,12 +98,13 @@ export interface Database {
       flashcards: {
         Row: {
           id: string
-          topic_id: string
+          topic_id: string | null
           subject_id: string
           term: string
           definition: string
           created_by: string
           created_at: string
+          lesson_id: string | null
         }
         Insert: Omit<Database['public']['Tables']['flashcards']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['flashcards']['Insert']>
@@ -224,6 +238,59 @@ export interface Database {
         }
         Insert: Omit<Database['public']['Tables']['teacher_subjects']['Row'], 'id' | 'assigned_at'>
         Update: Partial<Database['public']['Tables']['teacher_subjects']['Insert']>
+      }
+      curriculum_units: {
+        Row: {
+          id: string
+          subject_id: string
+          title: string
+          description: string | null
+          year_group: YearGroup
+          position: number
+          created_by: string
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['curriculum_units']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['curriculum_units']['Insert']>
+      }
+      curriculum_topics: {
+        Row: {
+          id: string
+          unit_id: string
+          title: string
+          description: string | null
+          position: number
+          created_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['curriculum_topics']['Row'], 'id' | 'created_at'>
+        Update: Partial<Database['public']['Tables']['curriculum_topics']['Insert']>
+      }
+      curriculum_lessons: {
+        Row: {
+          id: string
+          topic_id: string
+          title: string
+          learning_outcomes: string[]
+          content: ContentBlock[]
+          is_published: boolean
+          position: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['curriculum_lessons']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['curriculum_lessons']['Insert']>
+      }
+      lesson_progress: {
+        Row: {
+          id: string
+          student_id: string
+          lesson_id: string
+          is_completed: boolean
+          completed_at: string | null
+          manually_completed: boolean
+        }
+        Insert: Omit<Database['public']['Tables']['lesson_progress']['Row'], 'id'>
+        Update: Partial<Database['public']['Tables']['lesson_progress']['Insert']>
       }
     }
     Views: {}
