@@ -25,6 +25,11 @@ function measure(selector: string | undefined): Cutout | null {
 }
 
 function tooltipPosition(cutout: Cutout | null, side: TutorialStep['tooltipSide']): React.CSSProperties {
+  // On mobile always anchor to the bottom — avoids overflow beside the narrow sidebar
+  if (window.innerWidth < 768) {
+    return { position: 'fixed', bottom: 16, left: 8, right: 8, zIndex: 50 }
+  }
+
   if (!cutout) {
     return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: TOOLTIP_W, zIndex: 50 }
   }
