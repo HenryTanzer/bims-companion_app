@@ -33,7 +33,7 @@ export default async function TeacherExamCenter() {
       <div>
         <h1 className="text-2xl font-bold">Exam Centre</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Upload past papers for students to access. Requires a <code className="text-xs bg-muted px-1 py-0.5 rounded">past-papers</code> public storage bucket in Supabase.
+          Upload past papers for students to access.
         </p>
       </div>
       <ExamCenterManager
