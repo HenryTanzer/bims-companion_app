@@ -55,21 +55,19 @@ All XP/streak/level updates go through `src/lib/progress.ts` → `updateStudentP
 **Why:** Teachers only cover one subject. A confirmation dialog at signup makes the single-select constraint explicit.
 **Implementation:** On signup, teachers choose their subject. An amber confirmation box appears before submit. On success, a row is inserted into `teacher_subjects (teacher_id, subject_id)`.
 **Reassignment:** Admins can reassign via `/admin/teachers`. Deletes existing rows and inserts the new one.
-**Schema:** `teacher_subjects` table — PARTIALLY RUN. Table and some policies exist. Use DROP POLICY IF EXISTS version (see CLAUDE_HANDOFF.md).
-**Known issue:** If a teacher signs up without selecting a unit and the `teacher_subjects` table doesn't exist, the insert fails silently. The teacher exists in `profiles` but has no `teacher_subjects` row. All teacher pages return empty data. Admin must reassign unit after SQL is run.
+**Schema:** `teacher_subjects` table — RUN ✅.
 
 ### Teacher Portal Scoping: `getTeacherContext()` Helper
 **Why:** All teacher pages needed to filter data to the teacher's assigned subjects. A shared server-side helper called independently at the top of each page avoids prop drilling.
 **Implementation:** `src/lib/teacher-subjects.ts` exports `getTeacherContext(supabase, userId)` → `{ role, subjectIds, isAdmin }`. Each teacher page wraps queries with: `isAdmin ? all data : subjectIds.length > 0 ? filtered : Promise.resolve({data:[]})`.
-**Warning:** If `teacher_subjects` table does not exist in the DB, this function will error on every teacher page.
 
 ### Admin Portal: Dedicated `/admin` Route Group
 **Why:** Admins need school-wide visibility and user management that teachers should not have.
-**Design:** Three pages — dashboard, users (role changes), teachers (unit reassignment). Route guard in `proxy.ts` blocks non-admins.
+**Design:** Three pages — dashboard, users (role changes), teachers (unit reassignment), settings. Route guard in `proxy.ts` blocks non-admins.
 
 ### Admin Auto-Enrollment: DB Trigger
 **Why:** Admins need to see data across all subjects automatically.
-**Schema:** `supabase-admin-enroll.sql` — NOT YET RUN IN PRODUCTION.
+**Schema:** `supabase-admin-enroll.sql` — RUN ✅.
 
 ### Mobile Responsiveness: Hamburger Drawer Pattern
 **Why:** The sidebar was hardcoded at 256px with no mobile handling. On phones it consumed the entire screen.
@@ -83,15 +81,18 @@ All XP/streak/level updates go through `src/lib/progress.ts` → `updateStudentP
 **Why:** The original shared key (`bims_tutorial_v1`) meant completing or skipping either portal's tour permanently blocked the other. Separate keys allow each portal to show its tour independently.
 **Keys:** `bims_student_tutorial_v1`, `bims_teacher_tutorial_v1`.
 **Mobile:** When tutorial launches on mobile, `bims:open-sidebar` is fired first, then a 350ms delay before the modal mounts. This allows the sidebar's 300ms slide-in animation to complete before `getBoundingClientRect()` measures nav item positions.
-**Tooltip on mobile:** Always `fixed bottom: 16, left: 8, right: 8` — full width, anchored to bottom of screen. On desktop, tooltip positions relative to the highlighted element (right/bottom/left/top depending on `tooltipSide`).
-**Why bottom-anchored on mobile:** The sidebar is 256px wide. Right-positioning calculated `left: ~274px` on a ~390px screen, pushing the 300px-wide tooltip off-screen. Bottom-anchoring avoids all positional calculations on small screens.
-**Profile page relaunch:** "Take the tour" button clears both portal keys and fires `bims:launch-tutorial`.
+**Tooltip on mobile:** Always `fixed bottom: 16, left: 8, right: 8` — full width, anchored to bottom of screen. On desktop, tooltip positions relative to the highlighted element.
+**Why bottom-anchored on mobile:** The sidebar is 256px wide. Right-positioning calculated `left: ~274px` on a ~390px screen, pushing the 300px-wide tooltip off-screen.
+**Relaunch:** Settings → App Settings → Reset tutorial. Clears the localStorage key and fires `bims:launch-tutorial`.
 
 ### No Separate Backend / API Routes (except AI and Daily Challenge)
 **Why:** Supabase handles all data operations directly from the client or server components. API routes exist for:
 - `/api/study-buddy` — Anthropic SDK must run server-side to protect the API key
 - `/api/extract-questions` — Anthropic SDK + PDF fetch must run server-side
 - `/api/daily-challenge` — correct answer must never be sent to client
+- `/api/parse-textbook` — single-lesson PDF import (Anthropic SDK server-side)
+- `/api/curriculum/extract-outline` — textbook outline extraction (Anthropic SDK server-side)
+- `/api/curriculum/generate-lesson` — per-lesson generation: blocks + quiz questions + flashcards (Anthropic SDK server-side)
 
 ### AI Study Buddy: Claude Haiku, Streaming, Strict Subject Guardrails
 **Why:** Claude Haiku (claude-haiku-4-5-20251001) is fast and cheap. Strict RULES in the system prompt — AI only discusses the student's selected A-Level subject, refuses all off-topic requests with a fixed response.
@@ -99,16 +100,63 @@ All XP/streak/level updates go through `src/lib/progress.ts` → `updateStudentP
 ### AI Question Extraction: Claude Sonnet, PDF Document Block
 **Why:** Teachers upload past papers as PDFs. Claude Sonnet reads the PDF and extracts structured MCQ data. `/api/extract-questions/route.ts`.
 
+### Curriculum Builder: Built ✅ (SQL not yet run — unverified)
+**Why:** Teachers need a structured content hub that replaces textbooks — lessons with rich media, not just MCQs. Most-requested missing feature from teacher feedback.
+**Data model:** 3-level hierarchy — Unit → Topic → Lesson. Year grouping (`Year 12 | Year 13 | Both`) is a badge on units, not a separate hierarchy level.
+**Block-based content editor (custom, not TipTap/Quill):** Chose a custom block editor because TipTap adds ~100KB and its customisation API is complex. The lesson structure is known upfront (9 block types: text, heading, image, video, table, list, callout, divider, file) so a custom form-per-block approach is simpler and produces clean JSONB output.
+**Content stored as JSONB:** `curriculum_lessons.content` is a `jsonb` column holding a `ContentBlock[]` array. This allows adding block types without schema migrations. TypeScript's discriminated union (`ContentBlock`) provides type safety app-side.
+**`BlockWithId` pattern:** Each block has a `_id` string (random, client-only) for React key management. `_id` is stripped before saving to the DB.
+**`lesson-media` Supabase Storage bucket:** Public bucket (no signed URL overhead). Bucket must be created manually in Supabase dashboard — Storage → New bucket → `lesson-media` → Public: YES.
+**Lesson resource linking:** Quiz questions and flashcards can be linked to lessons via a "Linked Resources" tab in the lesson editor (lazy-loaded on first click). Linking sets `lesson_id` on the question/flashcard row.
+**Quiz lesson recommendations:** After a quiz, the results screen shows "Review these lessons" cards for any wrong answer whose question has a `lesson_id`. Cards link to `/student/curriculum`.
+**RLS design:** Two separate SELECT/ALL policies on `curriculum_lessons` OR'd together — `teacher_all` (FOR ALL, checks `teacher_subjects` or `is_admin`) and `student_select` (FOR SELECT, checks `is_published = true` AND enrolled).
+
 ### Content Manager vs Curriculum Builder
 **Why they are different:**
-- **Content Manager** (`/teacher/content`) — form for adding individual MCQ questions, flashcards, and topics. Feeds the quiz/flashcard engines. Already built.
-- **Curriculum Builder** (not yet built) — structured content tree: Subject → Year group → Unit → Chapter → Lesson. Teachers attach lesson materials to each node. Students navigate the tree as their course map. Most-requested missing feature from teacher feedback.
+- **Content Manager** (`/teacher/content`) — form for adding individual MCQ questions, flashcards, and topics. Feeds the quiz/flashcard engines.
+- **Curriculum Builder** (`/teacher/curriculum`) — structured content tree: Unit → Topic → Lesson. Teachers author rich lesson content. Students navigate as their course map.
 
 ### PDF Storage: Supabase Storage (`past-papers` bucket)
 Already public, already created. ✅
 
-### Profile Page: Shared Component, Per-Portal Pages
-`ProfileForm` client component reused by both student and teacher portal profile pages. Contains: display name edit, email (read-only), role (read-only), change password, take the tour button, enrolled subjects (students only).
+### Profile + Settings Architecture: Settings as Hub (added 2026-05-13)
+**Why:** The original design had a separate "Profile" sidebar link in addition to a "Settings" link. This was redundant — profile editing is a subset of account management, not a separate top-level destination.
+**Decision:** Profile link removed from all three sidebars. Settings is the single entry point. Settings → Account section → Profile opens the profile page. The Settings link's active state covers both `/settings` and `/profile` paths so it stays highlighted when the user is on the profile page.
+**Shared settings component:** `src/components/shared/settings-view.tsx` serves all three portals. Role-aware: student-only sections (leaderboard privacy, streak reminders, study timer link) do not appear for teachers or admins.
+**Admin basePath:** Admin users share the teacher profile page (`/teacher/profile`). Admin settings uses `basePath="/teacher"` to drive the Profile navigation link correctly.
+
+### UserMenu Dropdown: Custom Implementation (added 2026-05-13)
+**Why custom instead of base-ui DropdownMenu:**
+`src/components/ui/dropdown-menu.tsx` uses `@base-ui/react/menu`. It applies `w-(--anchor-width)` CSS variable to the popup, which sets the popup width equal to the trigger element (the 32px avatar). Overriding this with CSS specificity was fragile.
+**Decision:** Built a custom dropdown in `src/components/shared/user-menu.tsx` using `useRef<HTMLDivElement>` + `useEffect` mousedown listener for click-outside detection. No dependency on base-ui for this pattern.
+**Content:** User info header (name, email, role badge with colour), Profile link, Settings link, Sign out button. ChevronDown rotates on open.
+
+### Career Avatar System: bims-career Scheme, SVG in TypeScript (added 2026-05-13)
+**Why career avatars:** Students pick a career path avatar to personalise their profile and signal their ambitions. 14 SVG career avatars cover common BIMS School aspirations (doctor, engineer, teacher, etc.).
+**Why not image files:** Static SVG files in `public/` would require a deploy for every new avatar. Defining SVGs as TypeScript strings in `src/lib/career-avatars.ts` keeps them code-controlled and avoids an extra storage bucket.
+**Storage scheme:** `avatar_url = "bims-career:<id>"` — uses the existing `avatar_url` column. No new DB column required. The `bims-career:` prefix is a namespace, not an actual URL.
+**Resolution:** `resolveAvatarSrc(url)` is the single point of conversion. Returns `null` for null input, a `data:image/svg+xml;charset=utf-8,...` data URI for career avatars, or the raw URL for custom uploads. All rendering code calls this before passing to `<AvatarImage src>`.
+**SVG design constraints:** Each avatar is a 100×100 viewBox with a coloured circle background and white icon. Icon is the inner SVG content only (no outer `<svg>` tag). The `wrap(color, icon)` function assembles the full SVG string.
+
+### Custom Photo Upload: Supabase `avatars` Bucket (added 2026-05-13)
+**Why:** Students and teachers may prefer their own photo over a career avatar.
+**Implementation:** `src/components/shared/profile-form.tsx` uploads to `avatars/${profile.id}.{ext}` with `upsert: true`. Cache busting via `?t=${Date.now()}` appended to the public URL before saving.
+**RLS requirement:** The `avatars` bucket requires separate INSERT, UPDATE, and SELECT policies on `storage.objects`. Without the INSERT policy, uploads fail with a generic "Failed to upload image" error. The code catches the "Bucket not found" error separately and surfaces a helpful message.
+**2 MB limit:** Enforced client-side (`file.size > 2 * 1024 * 1024`) before the upload attempt.
+
+### Settings Toggles: Custom Toggle Component, Not shadcn Switch (added 2026-05-13)
+**Why:** `src/components/ui/` does NOT have `switch.tsx`. Rather than add it (which brings shadcn dependencies), a minimal custom `Toggle` component was defined inline in `settings-view.tsx`. It is a `<button role="switch" aria-checked={checked}>` with a sliding inner `<span>`. Accessibility-correct and visually identical to a switch.
+**Not extracted to ui/:** The toggle is only used in settings. Extracting it would be premature. If it's needed elsewhere later, move it then.
+
+### Settings State: localStorage Only (added 2026-05-13)
+**Why not DB:** Settings like notification sounds, haptic feedback, and leaderboard privacy are device preferences, not account data. Storing them in localStorage avoids a round-trip to Supabase on every page load and keeps them local to the device (appropriate for device-level preferences like sound/haptic).
+**Keys used:**
+- `bims_notification_sounds` — notification sounds on/off
+- `bims_sound_effects` — UI sound effects on/off
+- `bims_haptic_feedback` — haptic feedback on/off (navigator.vibrate)
+- `bims_leaderboard_visible` — leaderboard privacy (student only)
+- `bims_streak_reminders` — streak reminder toggle (student only)
+- `bims_browser_notifs` — browser notification permission state
 
 ### Password Management: Three Flows
 1. **Change password (logged in):** `supabase.auth.updateUser({ password })`.
@@ -122,21 +170,49 @@ Three tables: `modules`, `module_questions`, `module_submissions`. All with RLS.
 
 ### Daily Challenge: Server-Side Answer Checking
 Answer never sent to client before submission. Server page strips `correct_answer`. Deterministic by date. `UNIQUE(student_id, challenge_date)` prevents double submission.
-`supabase-daily-challenge.sql` NOT YET RUN. ⚠️
+`supabase-daily-challenge.sql` RUN ✅.
 
 ### Study Timer: Client Component, XP on Full Completion Only
 15/25/45/60 min presets. 1 XP/min awarded only on full completion. SVG countdown ring.
-`supabase-study-timer.sql` NOT YET RUN. ⚠️
+`supabase-study-timer.sql` RUN ✅.
 
 ### PWA: Custom Service Worker (not a plugin)
 **Why:** `@ducanh2912/next-pwa` and `vite-plugin-pwa` both have compatibility issues with Next.js 16. Custom `public/sw.js` was chosen deliberately. Do NOT add either plugin.
 Three phases all built: manifest, service worker, offline reads (IndexedDB), write queue + sync.
+
+### proxy.ts Matcher: Static Assets Excluded
+**Why:** The middleware matcher must exclude static files so unauthenticated browsers can fetch them. Fixed to also exclude `sw.js` and `manifest.webmanifest` — without this, the browser received login-redirect HTML instead of the PWA manifest, breaking PWA installability.
+**Current exclusion pattern:** `favicon\\.ico|sw\\.js|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$`
+
+### No Opening Animation
+**Why:** The time-to-useful-content gain from skipping an animation outweighs the "cool factor" for a school productivity tool. Decision: defer indefinitely.
+
+### OpenAI Codex Collaboration Strategy
+**Why:** Pro subscription enables parallel AI-assisted development. Claude Code and Codex can work simultaneously without conflicts if isolated to separate git branches.
+**Pattern:** Create a feature branch for Codex (`git checkout -b codex/feature-name`). Claude Code works on `master` or its own branch. Merge via PR, resolve conflicts manually. Do NOT have both AIs edit the same file at the same time.
+**Risk:** Neither AI knows what the other has changed. Keep branch lifetimes short. Review every Codex PR against current `master` before merging.
 
 ### Deployment: Vercel
 Push to master triggers automatic redeploy. After changing env vars in Vercel Settings, a manual redeploy is required.
 
 ### School Logo
 `public/logo.png`. Wrapped in `bg-white rounded-xl p-0.5` container so black line-art logo is always visible in dark mode.
+
+---
+
+### AI Textbook → Full Curriculum Import: Built ✅ (SQL not yet run — unverified)
+**Why:** Core mission of the app is to replace textbooks. AI parsing converts a full PDF textbook into an entire curriculum — units, topics, lessons, quiz questions, and flashcards — in one workflow.
+**Architecture:**
+1. Teacher uploads PDF to `lesson-media/textbook-imports/` (Supabase Storage, browser client). URL stored on `curriculum_import_jobs.file_url`.
+2. `/api/curriculum/extract-outline` — fetches PDF from storage URL, sends to Claude Sonnet, returns unit/topic/lesson outline. Creates `curriculum_import_jobs` row.
+3. Teacher reviews and edits the outline tree.
+4. Browser creates DB shells sequentially: `curriculum_units`, `curriculum_topics`, `curriculum_lessons` rows with empty content. Populates `outline` JSONB with `db_id` fields and `status: 'pending'`.
+5. `/api/curriculum/generate-lesson` — called once per lesson. Saves blocks, quiz questions, flashcards to DB. Marks lesson `status: 'done'` in outline JSONB.
+6. Resume: teacher re-uploads the same PDF. Wizard detects `existingJob.outline`, skips extraction, runs generation from first `status !== 'done'` lesson.
+**Constraints:**
+- Vercel body limit (~4.5MB): never send PDF as base64 in request body. Always upload to storage first and pass the URL.
+- `maxDuration = 120` required on extract-outline and generate-lesson routes.
+**Status:** BUILT 2026-05-13. `supabase-curriculum-import.sql` not yet run. Anthropic credits required.
 
 ---
 
@@ -148,8 +224,8 @@ Push to master triggers automatic redeploy. After changing env vars in Vercel Se
 | Anthropic account | Personal vs. dedicated school account | Personal used currently; school account recommended |
 | Custom domain | School domain vs. Vercel subdomain | Not set up |
 | Type generation | Manual types vs. `supabase gen types` | Manual now; generated types would remove `as any` casts |
-| Gradebook | Dedicated aggregate page | Next in agreed build order |
-| Discussions | Teacher/student threads per subject | 5th in agreed order |
-| Curriculum Builder | Subject → Year → Unit → Chapter → Lesson tree | Most-requested missing feature; significant build |
+| Notes on lessons | Per-lesson student note-taking | Small feature, high value for revision; next in agreed build order |
+| Search | Global search across lessons, questions, flashcards | Medium build |
+| Discussions | Teacher/student threads per subject | Later feature |
 | Multi-tenancy | Add `school_id` to all tables | Required before selling to a second school |
-| Discoverability | Login page signup hint + teacher dashboard empty-states | Quick wins; teachers couldn't find registration/enrolment flow |
+| Discoverability | Login page signup hint + teacher dashboard empty-states | Quick wins |

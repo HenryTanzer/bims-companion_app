@@ -4,7 +4,6 @@
 **BIMS Companion** — A-Level study platform for Year 12–13 students at BIMS School.
 Subjects: IT, Business, Biology.
 Three user portals: Student (study tools, XP, streaks), Teacher (content creation, student oversight, scoped to their unit), Admin (user management, school-wide view).
-Recreating the original app at https://bims.bi — reviewed Director and Student views in session 2.
 
 ---
 
@@ -38,177 +37,154 @@ Vercel project: `bims-companion` under HenryTanzer's account.
 src/
   app/
     (auth)/
-      login/page.tsx              — Login page (email + password, decorative blur-blobs + floating icons) ✅
-      signup/page.tsx             — Signup page (name, email, password, role; teacher single-select unit with confirm dialog; decorative bg) ✅
+      login/page.tsx              — Login page ✅
+      signup/page.tsx             — Signup page ✅
       forgot-password/page.tsx    — Sends Supabase password reset email ✅
-      reset-password/page.tsx     — Handles PASSWORD_RECOVERY event, sets new password ✅
-    page.tsx                      — Root redirect (role-based: admin→/admin, teacher→/teacher, student→/student)
+      reset-password/page.tsx     — Handles PASSWORD_RECOVERY event ✅
+    page.tsx                      — Root redirect (role-based)
     layout.tsx                    — Root layout (ThemeProvider, Toaster, ServiceWorkerRegister)
-    manifest.ts                   — PWA manifest (Next.js 16 native MetadataRoute.Manifest) ✅
+    manifest.ts                   — PWA manifest ✅
     offline/page.tsx              — Offline fallback page ✅
     api/
-      study-buddy/route.ts        — POST route: streams Claude Haiku, strict subject-only guardrails ✅
-      extract-questions/route.ts  — POST route: fetches PDF, sends to Claude Sonnet, returns MCQ array ✅ (UNVERIFIED — needs Anthropic credits)
-      daily-challenge/route.ts    — POST route: server-side answer check, XP award, inserts attempt ✅ (UNVERIFIED — needs supabase-daily-challenge.sql run first)
+      study-buddy/route.ts        — POST: streams Claude Haiku, subject-only guardrails ✅
+      extract-questions/route.ts  — POST: fetches PDF → Claude Sonnet → MCQ array ✅ (UNVERIFIED — needs Anthropic credits)
+      daily-challenge/route.ts    — POST: server-side answer check, XP award ✅
+      parse-textbook/route.ts     — POST: single-lesson PDF → Claude Sonnet → ContentBlock[] ✅
+      curriculum/
+        extract-outline/route.ts  — POST: PDF URL → Claude Sonnet → unit/topic/lesson outline + creates import job ✅
+        generate-lesson/route.ts  — POST: PDF URL + lessonDbId → Claude Sonnet → blocks + quiz questions + flashcards saved to DB ✅
     admin/
-      layout.tsx                  — Admin layout (server, role guard admin-only, AdminSidebar + topbar)
-      page.tsx                    — Admin dashboard (student/teacher/subject counts, avg score, students per subject, recent signups) ✅
-      users/page.tsx              — User management: search by name/email, inline role change buttons ✅
-      teachers/page.tsx           — Teacher unit management: reassign which subject a teacher covers ✅
+      layout.tsx                  — Admin layout (role guard, AdminSidebar, UserMenu in topbar) ✅
+      page.tsx                    — Admin dashboard (school-wide stats) ✅
+      users/page.tsx              — User management: search, inline role change ✅
+      teachers/page.tsx           — Teacher unit reassignment ✅
+      settings/page.tsx           — Admin settings (shared SettingsView, role="admin") ✅
     student/
-      layout.tsx                  — Student layout (sidebar + topbar + OfflineSync + OfflineQueueSync + TutorialController)
-      page.tsx                    — Student dashboard (gradient hero, coloured stat cards, 11 quick-link tiles) ✅
-      quiz/page.tsx               — Quiz page (full MCQ flow, XP rewards) ✅
-      flashcards/page.tsx         — Flashcards page (3D flip, spaced rep) ✅
-      exam-center/page.tsx        — Exam Centre (lists past papers by enrolled subject, opens PDF) ✅
-      progress/page.tsx           — Progress analytics (XP bar, stats, per-subject scores, quiz history) ✅
-      leaderboard/page.tsx        — Top 25 by XP, medals for top 3, current user highlighted ✅
-      study-buddy/page.tsx        — AI chat tutor (subject-aware, streams Claude Haiku) ✅
-      profile/page.tsx            — Profile page (edit display name, change password, relaunch tutorial) ✅
-      modules/page.tsx            — Lists published modules for enrolled subjects ✅
-      modules/[id]/page.tsx       — Individual module attempt page (Next.js 16 async params) ✅
-      daily-challenge/page.tsx    — Daily Challenge (one question/day, +35 XP correct) ✅ (UNVERIFIED — needs SQL)
-      review/page.tsx             — Review / Weak Areas (surfaces recently-wrong questions) ✅ (UNVERIFIED)
-      notifications/page.tsx      — Student notifications / teacher announcements ✅ (UNVERIFIED)
-      study-timer/page.tsx        — Study Timer page (fetches enrolled subjects, passes to client view) ✅ (UNVERIFIED — needs supabase-study-timer.sql)
+      layout.tsx                  — Student layout (sidebar + topbar with UserMenu + offline + TutorialController) ✅
+      page.tsx                    — Student dashboard ✅
+      curriculum/page.tsx         — Curriculum browser (subject tree) ✅ (UNVERIFIED — needs supabase-curriculum.sql + lesson-media bucket)
+      quiz/page.tsx               — Quiz ✅
+      flashcards/page.tsx         — Flashcards ✅
+      exam-center/page.tsx        — Exam Centre ✅
+      progress/page.tsx           — Progress analytics ✅
+      leaderboard/page.tsx        — Top 25 by XP ✅
+      study-buddy/page.tsx        — AI chat tutor ✅
+      profile/page.tsx            — Profile page (reached via Settings) ✅
+      settings/page.tsx           — Student settings hub ✅
+      modules/page.tsx            — Module list ✅
+      modules/[id]/page.tsx       — Module attempt page ✅
+      daily-challenge/page.tsx    — Daily Challenge (+35 XP) ✅ (UNVERIFIED end-to-end with real account)
+      review/page.tsx             — Review / Weak Areas ✅ (UNVERIFIED)
+      notifications/page.tsx      — Student notifications ✅ (UNVERIFIED)
+      study-timer/page.tsx        — Study Timer ✅ (UNVERIFIED end-to-end with real account)
     teacher/
-      layout.tsx                  — Teacher layout (sidebar + topbar, role guard + isAdmin prop to sidebar)
-      page.tsx                    — Teacher dashboard (stats scoped to teacher's subjects; admin sees all) ✅
-      content/page.tsx            — Content manager (scoped to teacher subjects) ✅
-      students/page.tsx           — Student list (scoped to teacher subjects) ✅
-      exam-center/page.tsx        — Exam Centre (scoped to teacher subjects) ✅
-      modules/page.tsx            — Module manager (scoped to teacher subjects) ✅
-      analytics/page.tsx          — Analytics dashboard (scoped to teacher subjects; admin sees all) ✅
-      messages/page.tsx           — Announcement broadcast (scoped to teacher subjects) ✅ (UNVERIFIED end-to-end)
-      profile/page.tsx            — Profile page (edit display name) ✅
+      layout.tsx                  — Teacher layout (sidebar + topbar with UserMenu, role guard) ✅
+      page.tsx                    — Teacher dashboard ✅
+      curriculum/page.tsx         — Curriculum Builder tree view ✅ (UNVERIFIED — needs supabase-curriculum.sql)
+      content/page.tsx            — Content Manager ✅
+      students/page.tsx           — Student list ✅
+      exam-center/page.tsx        — Exam Centre ✅
+      modules/page.tsx            — Module manager ✅
+      analytics/page.tsx          — Analytics dashboard ✅
+      messages/page.tsx           — Announcement broadcast ✅ (UNVERIFIED end-to-end)
+      profile/page.tsx            — Profile page (reached via Settings → Profile) ✅
+      settings/page.tsx           — Teacher settings hub ✅
   components/
     layout/
-      student-sidebar.tsx         — Mobile drawer (hamburger fixed top-left, backdrop, slide-in panel); bims:open/close-sidebar event listeners; gradient logo strip ✅
-      teacher-sidebar.tsx         — Mobile drawer (same pattern); "Admin portal" link shown only when isAdmin=true ✅
-      admin-sidebar.tsx           — Mobile drawer (same pattern) ✅
+      student-sidebar.tsx         — Mobile drawer; Profile link removed; Settings link covers /settings + /profile ✅
+      teacher-sidebar.tsx         — Mobile drawer; Profile link removed; Settings link added ✅
+      admin-sidebar.tsx           — Mobile drawer; Profile link removed; Settings link with active state ✅
     shared/
       theme-provider.tsx
       theme-toggle.tsx
-      profile-form.tsx            — Shared profile editor + change password + "Take the tour" relaunch button (clears both portal tutorial keys) ✅
-      service-worker-register.tsx — Registers /sw.js on mount (PWA) ✅
+      profile-form.tsx            — Profile editor + career avatar picker + photo upload + change password ✅
+      user-menu.tsx               — Avatar dropdown (name/email/role, Profile, Settings, Sign out) ✅
+      settings-view.tsx           — Role-aware settings hub (all 3 portals) ✅
+      service-worker-register.tsx — Registers /sw.js on mount ✅
       offline-sync.tsx            — Caches quiz/flashcard data to IndexedDB on student login ✅
-      offline-queue-sync.tsx      — Processes write queue on reconnect, shows sync toast ✅
-      tutorial-modal.tsx          — Spotlight tour modal (CSS box-shadow cutout); on mobile, tooltip anchored to bottom of screen ✅
-      tutorial-controller.tsx     — Per-portal localStorage keys; auto-shows on first login; fires bims:open-sidebar before showing on mobile (350ms delay); fires bims:close-sidebar on close ✅
+      offline-queue-sync.tsx      — Processes write queue on reconnect ✅
+      tutorial-modal.tsx          — Spotlight tour modal ✅
+      tutorial-controller.tsx     — Per-portal localStorage keys; mobile sidebar auto-open ✅
     student/
-      quiz-launcher.tsx           — Full quiz engine (offline-aware: IndexedDB reads + write queue)
-      flashcard-launcher.tsx      — Full flashcard engine (offline-aware: IndexedDB reads + write queue)
-      exam-center-view.tsx        — Subject tab switcher, papers grouped by year, PDF open button ✅
-      study-buddy-chat.tsx        — Streaming chat UI (subject pills, message thread, abort on cancel) ✅
-      module-list.tsx             — Module cards with status badge (submitted/overdue/not started) ✅
-      module-attempt.tsx          — Attempt UI + offline write queue for submissions ✅
-      daily-challenge-view.tsx    — Daily Challenge UI (pending/completed modes, result reveal) ✅
-      review-view.tsx             — Review UI (per-question check-answer, mastered badge, grouped by subject) ✅
-      notifications-view.tsx      — Notification cards (subject badge, teacher name, timestamp) ✅
-      study-timer-view.tsx        — Study Timer client component (SVG ring, duration/subject pickers, pause/resume, XP on complete) ✅
+      quiz-launcher.tsx           — Full quiz engine; shows lesson review cards on wrong answers ✅
+      flashcard-launcher.tsx      — Full flashcard engine ✅
+      curriculum-view.tsx         — Curriculum browser + lesson reader (all 9 block types) ✅ (UNVERIFIED)
+      exam-center-view.tsx        — Subject tab switcher, papers grouped by year ✅
+      study-buddy-chat.tsx        — Streaming chat UI ✅
+      module-list.tsx             — Module cards with status badge ✅
+      module-attempt.tsx          — Attempt UI + offline write queue ✅
+      daily-challenge-view.tsx    — Daily Challenge UI ✅
+      review-view.tsx             — Review UI ✅
+      notifications-view.tsx      — Notification cards ✅
+      study-timer-view.tsx        — Study Timer (SVG ring, XP on complete) ✅
+      settings-view.tsx           — Re-export of shared/settings-view.tsx ✅
     teacher/
-      content-manager.tsx         — Tabs: Quiz Questions / Flashcards / Topics
-      student-enroller.tsx        — Per-student enrolment manager (add/remove subjects inline) ✅
-      exam-center-manager.tsx     — Upload form + paper list + AI "Extract Qs" button + review panel + save to library ✅
-      module-manager.tsx          — Create module, list with publish/unpublish/delete, gradebook per module ✅
-    ui/                           — shadcn/ui components
+      curriculum-builder.tsx      — Tree view (Unit → Topic → Lesson) with full CRUD; "Import Textbook" / "Resume Import" buttons per subject ✅ (UNVERIFIED)
+      lesson-editor.tsx           — Block-based lesson editor (9 block types, media upload, linked resources, "Import from PDF" button) ✅ (UNVERIFIED)
+      textbook-import-wizard.tsx  — Multi-step wizard: upload PDF → extract outline → review/edit tree → generate all lessons with resume support ✅ (UNVERIFIED — needs supabase-curriculum-import.sql + Anthropic credits)
+      content-manager.tsx         — Quiz questions / Flashcards / Topics tabs ✅
+      student-enroller.tsx        — Per-student enrolment manager ✅
+      exam-center-manager.tsx     — Upload form + AI "Extract Qs" + save to library ✅
+      module-manager.tsx          — Create module, gradebook per module ✅
+    ui/                           — shadcn/ui components (no Switch component — use custom Toggle in settings-view)
   lib/
     supabase/
       client.ts                   — Browser Supabase client
-      server.ts                   — Server Supabase client (uses cookies())
-    progress.ts                   — Shared XP/streak/level/lessons_this_week update utility ✅
+      server.ts                   — Server Supabase client
+    career-avatars.ts             — 14 career SVG avatar definitions + helper functions ✅
+    progress.ts                   — XP/streak/level/lessons_this_week update utility ✅
     teacher-subjects.ts           — getTeacherContext(supabase, userId) → { role, subjectIds, isAdmin } ✅
-    offline-db.ts                 — IndexedDB layer (DB: bims-offline v2, stores: quiz_questions, flashcards, write_queue) ✅
-  proxy.ts                        — Auth + role-based route protection; /admin/* guard; admin→/admin redirect
-  types/database.ts               — Full TypeScript DB schema (manual); includes teacher_subjects, study_sessions
+    offline-db.ts                 — IndexedDB layer (bims-offline v2) ✅
+  proxy.ts                        — Auth + role-based route protection; manifest.webmanifest + sw.js excluded ✅
+  types/database.ts               — Full TypeScript DB schema; includes curriculum tables + ContentBlock union ✅
 
 public/
   sw.js                           — Service worker (cache-first static, network-first navigation) ✅
-  logo.png                        — School logo (confirmed working on live site) ✅
+  logo.png                        — School logo ✅
 
-supabase-schema.sql               — Full DB schema (run once, already executed)
-supabase-modules.sql              — Modules tables schema — ALREADY RUN ✅
-supabase-announcements.sql        — Announcements table + RLS — already existed; no action needed ✅
-supabase-daily-challenge.sql      — daily_challenge_attempts table + RLS — NOT YET RUN IN PRODUCTION ⚠️
-supabase-teacher-subjects.sql     — teacher_subjects table + RLS — table + some policies ALREADY EXIST (partial run). Use DROP POLICY IF EXISTS version (see below). ⚠️ BLOCKING
-supabase-admin-enroll.sql         — trigger: auto-inserts teacher_subjects rows for all subjects when role=admin — NOT YET RUN ⚠️ (run after teacher-subjects.sql)
-supabase-study-timer.sql          — study_sessions table + RLS — NOT YET RUN IN PRODUCTION ⚠️ BLOCKING for XP
-supabase-seed-questions.sql       — 15 sample quiz questions (IT/Business/Biology)
-supabase-seed-flashcards.sql      — 24 sample flashcards (IT/Business/Biology)
-supabase-migrate-geography-to-business.sql — Already run on live DB ✅
+supabase-schema.sql               — Full base DB schema (already run) ✅
+supabase-modules.sql              — Modules tables (already run) ✅
+supabase-announcements.sql        — Announcements table (already run) ✅
+supabase-teacher-subjects.sql     — teacher_subjects table — ALREADY RUN ✅
+supabase-admin-enroll.sql         — Admin auto-enrollment trigger — ALREADY RUN ✅
+supabase-study-timer.sql          — study_sessions table — ALREADY RUN ✅
+supabase-daily-challenge.sql      — daily_challenge_attempts table — ALREADY RUN ✅
+supabase-migrate-geography-to-business.sql — Already run ✅
+supabase-curriculum.sql           — Curriculum tables (4 new) + migrations — NOT YET RUN ⚠️ BLOCKING
+supabase-curriculum-import.sql    — curriculum_import_jobs table + RLS — NOT YET RUN ⚠️ BLOCKING for Textbook Import Wizard
 ```
 
 ---
 
 ## Supabase Setup Status
-- Project created and connected ✅
-- Schema executed (all base tables created) ✅
-- RLS enabled and policies applied to all base tables ✅
-- IT, Business, Biology subjects seeded ✅ (Geography migrated to Business)
-- Business questions and flashcards seeded ✅
-- Auth: Email provider enabled. Email confirmation: **OFF** ✅
-- Triggers: `handle_new_user` (auto-creates profile on signup) ✅
-- Triggers: `handle_new_student_progress` (auto-creates user_progress row for students) ✅
-- Storage bucket `past-papers`: **CREATED** as public bucket ✅
-- `supabase-modules.sql`: **ALREADY RUN** ✅
-- `supabase-announcements.sql`: **Already existed** ✅
-- `supabase-teacher-subjects.sql`: **PARTIALLY RUN** — table + some policies exist but the full script errored with "policy already exists". Must run the DROP POLICY IF EXISTS version below. ⚠️ BLOCKING
-- `supabase-admin-enroll.sql`: **NOT YET RUN** — must be run after supabase-teacher-subjects.sql. ⚠️
-- `supabase-study-timer.sql`: **NOT YET RUN** ⚠️ BLOCKING for XP
-- `supabase-daily-challenge.sql`: **NOT YET RUN** ⚠️ BLOCKING
-- URL Configuration: **ACTION REQUIRED** — set Site URL to Vercel URL and add `/reset-password` to Redirect URLs in Supabase → Auth → URL Configuration
-
-### DROP POLICY IF EXISTS version of supabase-teacher-subjects.sql
-Run this in the Supabase SQL editor instead of the raw file:
-```sql
-DROP POLICY IF EXISTS "teacher_subjects_select" ON teacher_subjects;
-DROP POLICY IF EXISTS "teacher_subjects_insert" ON teacher_subjects;
-DROP POLICY IF EXISTS "teacher_subjects_admin_all" ON teacher_subjects;
-
-CREATE TABLE IF NOT EXISTS teacher_subjects (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  teacher_id  uuid        NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  subject_id  uuid        NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
-  assigned_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (teacher_id, subject_id)
-);
-
-ALTER TABLE teacher_subjects ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "teacher_subjects_select"
-  ON teacher_subjects FOR SELECT
-  TO authenticated
-  USING (
-    teacher_id = auth.uid()
-    OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
-  );
-
-CREATE POLICY "teacher_subjects_insert"
-  ON teacher_subjects FOR INSERT
-  TO authenticated
-  WITH CHECK (teacher_id = auth.uid());
-
-CREATE POLICY "teacher_subjects_admin_all"
-  ON teacher_subjects FOR ALL
-  TO authenticated
-  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'))
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
-```
+- Base schema, RLS, auth triggers all executed ✅
+- IT, Business, Biology subjects seeded ✅
+- `supabase-teacher-subjects.sql` (DROP POLICY IF EXISTS version) — **ALREADY RUN** ✅
+- `supabase-admin-enroll.sql` — **ALREADY RUN** ✅
+- `supabase-study-timer.sql` — **ALREADY RUN** ✅
+- `supabase-daily-challenge.sql` — **ALREADY RUN** ✅
+- `supabase-curriculum.sql` — **NOT YET RUN** ⚠️ BLOCKING for Curriculum Builder
+- `supabase-curriculum-import.sql` — **NOT YET RUN** ⚠️ BLOCKING for Textbook Import Wizard
+- Storage bucket `past-papers` — public bucket exists ✅
+- Storage bucket `avatars` — **MUST EXIST** for photo upload; create as public bucket if not present. RLS policies for INSERT/UPDATE/SELECT also required ⚠️ (UNVERIFIED if applied)
+- Storage bucket `lesson-media` — **NOT YET CREATED** ⚠️ BLOCKING for image/file uploads in lessons
+- Auth: Email confirmation OFF ✅
+- Supabase → Auth → URL Configuration — **ACTION REQUIRED:** set Site URL + add `/reset-password` to Redirect URLs ⚠️
 
 ---
 
 ## Vercel Deployment
 - Deployed and live ✅
 - GitHub repo: `bims-companion_app` (private, master branch)
-- Root Directory: empty (repo root is the app root — do not set a subdirectory)
-- Environment variables set in Vercel: all 4 configured ✅
-- Deployment Protection: **DISABLED** ✅
-- To redeploy: push a new commit to master — Vercel auto-deploys
+- Root Directory: empty (repo root is the app root)
+- Environment variables: all 4 set ✅
+- Deployment Protection: disabled ✅
+- To redeploy: push to master — Vercel auto-deploys
 
 ---
 
-## Required Environment Variables (names only)
-File: `.env.local` in project root (local dev only — never commit this file)
+## Required Environment Variables
+File: `.env.local` in project root (local dev only — never commit)
 Also set in Vercel dashboard for production.
 
 ```
@@ -218,157 +194,284 @@ SUPABASE_SERVICE_ROLE_KEY
 ANTHROPIC_API_KEY
 ```
 
-**Note on Anthropic API key:** AI extraction and Study Buddy are broken in production until Anthropic billing credits are added.
+**Note:** AI features (Study Buddy, question extraction) are broken in production until Anthropic billing credits are added.
 
 ---
 
 ## What Has Been Completed
-- Project scaffolded with Next.js 16, TypeScript, Tailwind v4, shadcn/ui
-- Supabase client (browser + server) configured
-- Auth: login page, role-based redirect, proxy route guard
-- Dark/light theme toggle (next-themes)
-- Full student portal (quiz, flashcards, progress, leaderboard, exam centre, study buddy, modules, daily challenge, review, notifications, profile)
+- Project scaffolded: Next.js 16, TypeScript, Tailwind v4, shadcn/ui
+- Supabase client (browser + server), auth, role-based redirect, proxy route guard
+- Dark/light theme toggle
+- Full student portal (quiz, flashcards, progress, leaderboard, exam centre, study buddy, modules, daily challenge, review, notifications, study timer, profile)
 - Full teacher portal (content, students, exam centre, modules, analytics, messages, profile)
+- Admin portal (dashboard, users, teachers)
 - Password management (change, forgot, reset)
 - PWA phases 1–3 (manifest, service worker, offline reads, write queue + sync)
-- Study Buddy strict guardrails
-- Geography → Business migration
+- Study Buddy strict subject guardrails
 - Interactive onboarding tutorial (student + teacher portals)
-- Teacher unit selection at signup + teacher portal scoping via getTeacherContext()
-- Admin portal (/admin dashboard, users, teachers)
-- Admin auto-enrollment trigger (SQL not yet run)
+- Teacher unit selection at signup + portal scoping via getTeacherContext()
+- Admin auto-enrollment trigger
 - Visual enhancements (login/signup blobs, student dashboard hero, stat cards, quick-link tiles)
-- Study Timer (SVG ring, presets, pause/resume, XP on completion)
-- **Mobile responsive sidebars** — hamburger drawer on all three portals ✅
-- **Layout scroll fix** — items-start + removed flex-1 from main; all pages now scroll correctly on all screen sizes ✅
-- **Tutorial fixes** — per-portal keys, mobile sidebar auto-open, bottom-anchored tooltip on mobile ✅
+- Study Timer (SVG ring, presets, XP on completion)
+- Mobile responsive sidebars on all three portals
+- Layout scroll fix (items-start + no flex-1 on main)
+- Tutorial fixes (per-portal keys, mobile sidebar auto-open, bottom-anchored tooltip)
+- **Curriculum Builder** — Unit → Topic → Lesson tree with full CRUD; lesson editor with 9 block types; image/file upload to lesson-media bucket; publish/draft toggle; linked resources ✅ (committed, pushed — UNVERIFIED in production)
+- **Student Curriculum View** — browse tree, lesson reader (all block types rendered), progress tracking ✅ (UNVERIFIED in production)
+- **Quiz launcher lesson recommendations** — wrong answers with linked lesson surface "Review this lesson" cards ✅
+- **proxy.ts manifest fix** — PWA installability unblocked ✅
+- **Textbook Import Wizard** — AI-driven full curriculum generation from PDF; resume-on-failure support ✅ (committed, pushed — UNVERIFIED: needs SQL + Anthropic credits)
+- **Per-lesson PDF import** — "Import from PDF" in Lesson Editor ✅ (UNVERIFIED: needs Anthropic credits)
+- **Universal settings system** — `src/components/shared/settings-view.tsx` serves all three portals with role-aware sections: Appearance (3-way theme), Audio, Preferences, App Settings (PWA install prompt, haptic feedback, tutorial reset), Region, Help, About ✅ (committed, pushed — UNVERIFIED in teacher/admin portals)
+- **UserMenu dropdown** — avatar in all three layout topbars opens a dropdown: name, email, role badge, Profile link, Settings link, Sign out. Custom click-outside implementation ✅
+- **Career avatar system** — 14 in-app SVG career avatars (doctor, engineer, teacher, pilot, lawyer, scientist, artist, chef, athlete, programmer, entrepreneur, nurse, architect, vet). Stored as `bims-career:<id>` in `avatar_url`. `resolveAvatarSrc()` converts to SVG data URI at render time — no storage bucket needed ✅ (committed, pushed — UNVERIFIED rendering in production)
+- **Profile avatar picker** — inline career grid + custom photo upload in ProfileForm ✅ (photo upload UNVERIFIED — depends on avatars bucket RLS)
+- **Sidebar consolidation** — Profile link removed from all three sidebars; Settings link is the single entry point with active state covering both /settings and /profile paths ✅
 - TypeScript passing clean (`tsc --noEmit` no errors) ✅
 - All changes committed and pushed to master ✅
 
 ---
 
 ## What Is Broken, Unknown, or Unverified
-- **ACTION REQUIRED (manual, BLOCKING):** Run DROP POLICY IF EXISTS version of supabase-teacher-subjects.sql. Teacher portal broken in production.
-- **ACTION REQUIRED (manual, after above):** Run supabase-admin-enroll.sql.
-- **ACTION REQUIRED (manual):** Re-assign teacher unit via /admin/teachers after SQL runs.
-- **ACTION REQUIRED (manual, BLOCKING for XP):** Run supabase-study-timer.sql.
-- **ACTION REQUIRED (manual, BLOCKING):** Run supabase-daily-challenge.sql.
-- **ACTION REQUIRED (manual):** Supabase → Auth → URL Configuration → set Site URL + add /reset-password to Redirect URLs.
+- **ACTION REQUIRED (manual, BLOCKING for photo upload):** Run avatars bucket RLS policies in Supabase SQL Editor. See TODO.md for the exact SQL.
+- **ACTION REQUIRED (manual, BLOCKING for Curriculum):** Run `supabase-curriculum.sql` in Supabase SQL Editor.
+- **ACTION REQUIRED (manual, BLOCKING for Textbook Import Wizard):** Run `supabase-curriculum-import.sql` in Supabase SQL Editor.
+- **ACTION REQUIRED (manual, BLOCKING for lesson media):** Create `lesson-media` bucket in Supabase → Storage → New bucket → Name: `lesson-media` → Public: YES.
+- **ACTION REQUIRED (manual):** Supabase → Auth → URL Configuration → set Site URL + add `/reset-password` to Redirect URLs.
 - **ACTION REQUIRED (manual):** Add Anthropic billing credits.
-- **UNVERIFIED:** Tutorial on mobile (sidebar auto-open + bottom tooltip) — deployed, not yet confirmed on real device.
-- **UNVERIFIED:** Teacher unit assignment — teacher_subjects SQL not yet run cleanly.
-- **UNVERIFIED:** Admin auto-enrollment — SQL not yet run.
-- **UNVERIFIED:** Study Timer XP — SQL not yet run.
+- **UNVERIFIED:** Career avatar rendering in production — built and deployed but not visually confirmed.
+- **UNVERIFIED:** Custom photo upload end-to-end — avatars bucket RLS may not yet be applied.
+- **UNVERIFIED:** Settings page in teacher and admin portals — built, deployed, not manually verified.
+- **UNVERIFIED:** Curriculum Builder end-to-end — SQL not yet run, lesson-media bucket not yet created.
+- **UNVERIFIED:** Textbook Import Wizard — `supabase-curriculum-import.sql` not yet run, Anthropic credits required.
+- **UNVERIFIED:** Teacher unit assignment with real teacher account.
+- **UNVERIFIED:** Admin auto-enrollment — not confirmed with real login.
+- **UNVERIFIED:** Study Timer XP end-to-end.
 - **UNVERIFIED:** Daily Challenge end-to-end.
+- **UNVERIFIED:** Tutorial on mobile (sidebar auto-open + bottom tooltip).
 - **UNVERIFIED:** AI question extraction — requires Anthropic credits.
-- **UNVERIFIED:** Teacher announcements / student notifications.
+- **UNVERIFIED:** Teacher announcements / student notifications end-to-end.
 - **UNVERIFIED:** Review / Weak Areas with real data.
 - **UNVERIFIED:** Password reset flow end-to-end (requires Supabase URL config).
 - **UNVERIFIED:** PWA offline on a real device.
 - **UNVERIFIED:** Modules end-to-end on live site.
 - **UNVERIFIED:** Exam Centre PDF upload on live site.
 - **UNVERIFIED:** Streak increment across real days.
-- **Not built:** Gradebook (dedicated aggregate page — next in agreed order)
-- **Not built:** Discussions (teacher/student threads per subject)
-- **Not built:** Curriculum Builder (Subject → Year → Unit → Chapter → Lesson tree)
-- **Not built:** Discoverability fixes (login page signup hint, teacher dashboard empty-state prompts)
+- **Not built:** Notes on lessons (per-lesson student note-taking)
+- **Not built:** Search (across lessons, questions, flashcards)
+- **Not built:** Achievements page
+- **Not built:** Revision plans
+- **Not built:** Discussions
 
 ---
 
-## Original App Comparison (bims.bi — reviewed Session 2)
-Key gaps remaining:
-- **Gradebook** — dedicated aggregate view (next in agreed order)
-- **Discussions** — teacher/student threads
-- **Curriculum Builder** — structured curriculum tied to Pearson Edexcel exam board units (most-requested by teachers)
-- **Student Monitor / Coverage Grid / Trends** — analytics inside the Exam Center (teacher side)
-- **Classes / Study Groups / Teaching Center / Patterns / Calendar** — community and extended features
+## Original App Comparison
+Key gaps remaining (updated 2026-05-13):
+- **Notes** — per-lesson student note-taking
+- **Search** — across curriculum, questions, flashcards
+- **Achievements page** — surface XP milestones, streak records, perfect scores
+- **Revision plans** — teacher builds a pre-exam lesson sequence
+- **Discussions** — teacher/student threads per subject
 
-Features we have that the original does NOT: AI Study Buddy, AI question extraction from PDFs, Teacher Analytics dashboard, PWA offline support, Interactive onboarding tutorial, Admin portal, Study Timer, Mobile responsive sidebar.
+Features we have that the original does NOT: AI Study Buddy, AI question extraction from PDFs, Teacher Analytics dashboard, PWA offline support, Interactive onboarding tutorial, Admin portal, Study Timer, Mobile responsive sidebar, Curriculum Builder with rich block-based lessons, Career avatar picker, Universal settings system, UserMenu dropdown.
 
-The original app is built with **Vite + React** (SPA). Our app uses **Next.js** which gives faster first loads (server-rendered HTML), built-in API routes (no separate backend needed for AI/auth), and first-class Vercel deployment.
+Features confirmed out of scope (deliberate decision): super-admin, parent portal, staff views, director reporting, virtual classroom. These are not needed for a single-school deployment.
 
 ---
 
-## Mobile Responsiveness (added this session)
-All three portals are now mobile responsive:
+## Settings System (added 2026-05-13)
+
+### Architecture
+- Single shared component: `src/components/shared/settings-view.tsx`
+- Props: `{ role: 'student' | 'teacher' | 'admin', basePath: string }`
+- `basePath` drives all navigation: Profile → `${basePath}/profile`, etc.
+- Admin uses `basePath="/teacher"` (shares teacher profile page)
+- Student-only sections: leaderboard privacy, streak reminders, study timer link
+
+### Sections
+| Section | Content |
+|---|---|
+| Appearance | Light / Dark / System 3-way theme toggle |
+| Audio | Notification sounds toggle, Sound effects toggle (localStorage) |
+| Preferences | Leaderboard privacy (student only), Streak reminders (student only) |
+| App Settings | PWA install prompt (beforeinstallprompt), Haptic feedback toggle (navigator.vibrate), Tutorial reset |
+| Region | Timezone display (auto-detected, read-only label) |
+| Help & Support | Contact info placeholders |
+| About | App version, role label |
+
+### Custom Toggle
+No `Switch` in `src/components/ui/`. Settings uses a custom inline `Toggle` component (button with `role="switch"`, sliding span). Not extracted to ui/ — stays inside settings-view.tsx.
+
+### Storage
+All toggles persist in localStorage:
+- `bims_notification_sounds`
+- `bims_sound_effects`
+- `bims_haptic_feedback`
+- `bims_leaderboard_visible`
+- `bims_streak_reminders`
+- `bims_browser_notifs`
+
+---
+
+## Career Avatar System (added 2026-05-13)
+
+### Storage Scheme
+`avatar_url = "bims-career:doctor"` → resolved to SVG data URI at render time via `resolveAvatarSrc()`.
+No additional DB column. No storage bucket required for career avatars.
+
+### Helper Functions (src/lib/career-avatars.ts)
+- `isCareerAvatar(url)` — returns true if url starts with `bims-career:`
+- `careerAvatarUrl(id)` — returns `bims-career:${id}`
+- `getCareerIdFromUrl(url)` — strips prefix, returns id
+- `getCareerSvgString(id)` — returns full SVG string
+- `getCareerDataUri(id)` — returns `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+- `resolveAvatarSrc(url)` — handles all three cases: null → null, career → data URI, custom → pass through
+
+### 14 Career Avatars
+doctor (blue), engineer (orange), teacher (purple), pilot (sky blue), lawyer (navy), scientist (emerald), artist (pink), chef (red), athlete (amber), programmer (slate), entrepreneur (teal), nurse (rose), architect (indigo), vet (lime)
+
+### Rendering Pattern
+All places that display an avatar use `resolveAvatarSrc(avatarUrl)` before passing to `AvatarImage src`. UserMenu and ProfileForm both follow this pattern.
+
+---
+
+## UserMenu Dropdown (added 2026-05-13)
+
+### Why Custom (not base-ui DropdownMenu)
+`src/components/ui/dropdown-menu.tsx` uses `@base-ui/react/menu` with `w-(--anchor-width)` CSS variable — sets popup width equal to the trigger (the 32px avatar button). Fighting CSS specificity to override was fragile.
+
+### Implementation
+`src/components/shared/user-menu.tsx` — `useRef<HTMLDivElement>` + `useEffect` mousedown listener for click-outside detection. Dropdown anchored `right-0 top-full mt-2`.
+
+### Props
+```typescript
+{ name, email, initials, role, avatarUrl, settingsHref, profileHref }
+```
+
+### Integration
+All three layouts (`student/layout.tsx`, `teacher/layout.tsx`, `admin/layout.tsx`) fetch `avatar_url` from profiles and pass it to `<UserMenu>`.
+
+---
+
+## Curriculum Builder (added previously)
+
+### Data Model
+```
+Subject (existing)
+  └── curriculum_units     — year_group: 'Year 12' | 'Year 13' | 'Both'
+        └── curriculum_topics
+              └── curriculum_lessons  — content: ContentBlock[] (JSONB), is_published bool
+                    ├── learning_outcomes: text[]
+                    └── linked quiz_questions + flashcards (via lesson_id FK)
+lesson_progress             — per student per lesson: is_completed, manually_completed
+```
+
+### Content Block Types
+`text | heading | image | video | table | list | callout | divider | file`
+
+### RLS Summary
+- Teachers: full CRUD on units/topics/lessons for their subject(s). Admins see all.
+- Students: SELECT only, `is_published = true` AND enrolled in the subject.
+- lesson_progress: students own their rows; teachers can read all.
+
+### Storage
+- Bucket: `lesson-media` (must be created manually as public bucket)
+
+---
+
+## Mobile Responsiveness
+All three portals are mobile responsive:
 - Sidebars: `fixed inset-y-0 left-0` on mobile, `md:relative md:translate-x-0` on desktop
-- Hamburger button: `fixed top-3 left-3 z-40 md:hidden`
-- Backdrop: `fixed inset-0 bg-black/50 z-40 md:hidden` — closes sidebar on tap
-- Layout topbar: `pl-14 pr-4 md:px-6` — reserves space for hamburger on mobile
-- Main padding: `p-4 md:p-6`
-- Outer layout container: `flex items-start min-h-screen` — items-start prevents height-stretching that locked pages to 100vh
-- `main`: no `flex-1` — sizes to content so page scrolls naturally
+- Hamburger: `fixed top-3 left-3 z-40 md:hidden`
+- Backdrop: `fixed inset-0 bg-black/50 z-40 md:hidden`
+- Layout topbar: `pl-14 pr-4 md:px-6`
+- Outer container: `flex items-start min-h-screen` — items-start prevents height-lock
+- `main`: no `flex-1`
 
 ---
 
 ## Tutorial System
 - **Student key:** `bims_student_tutorial_v1`
 - **Teacher key:** `bims_teacher_tutorial_v1`
-- Auto-shows on first login if key absent. Relaunchable from profile page ("Take the tour").
-- On mobile: fires `bims:open-sidebar` custom event → sidebars open → 350ms delay → modal mounts (sidebar animation completes before element measurement).
-- On close: fires `bims:close-sidebar` → sidebars close on mobile.
-- Mobile tooltip: always `fixed bottom: 16, left: 8, right: 8` (full width). Desktop tooltip: positioned relative to highlighted element.
-- Spotlight: CSS `box-shadow: 0 0 0 9999px rgba(0,0,0,0.65)` on a div sized to the target element.
+- Auto-shows on first login. Relaunchable from Settings → App Settings → Tutorial.
+- Mobile: fires `bims:open-sidebar` → 350ms delay → modal mounts.
+- On close: fires `bims:close-sidebar`.
+- Mobile tooltip: always `fixed bottom: 16, left: 8, right: 8`.
 
 ---
 
 ## Teacher Portal Scoping
-All 7 teacher pages call `getTeacherContext(supabase, userId)` from `src/lib/teacher-subjects.ts`. Returns `{ role, subjectIds, isAdmin }`. If `isAdmin`, all data shown unfiltered. If not admin, queries filtered to `subjectIds`. If `subjectIds` is empty, pages return empty data.
-**NOTE:** If `teacher_subjects` table does not exist, `getTeacherContext` will error. Run the SQL first.
+All teacher pages call `getTeacherContext(supabase, userId)` → `{ role, subjectIds, isAdmin }`.
+If `isAdmin`, all data shown unfiltered. If not admin, filtered to `subjectIds`.
 
 ---
 
-## Admin Portal Design
-- `/admin` — dashboard with school-wide stats
-- `/admin/users` — search and change roles; cannot change own role
-- `/admin/teachers` — reassign teacher unit (writes to teacher_subjects — requires SQL to be run first)
-- Admins land on `/admin` after login
-- Admins can toggle to teacher portal via sidebar link
-- `/admin/*` requires `role === 'admin'` in proxy.ts
-- To create the first admin: Supabase → Table Editor → profiles → set `role` to `admin` manually
+## Admin Portal
+- `/admin` — school-wide stats
+- `/admin/users` — search + role changes
+- `/admin/teachers` — reassign teacher subject
+- `/admin/settings` — admin settings (uses shared SettingsView with basePath="/teacher")
+- Admins land on `/admin` after login; can also visit teacher and student portals
+- First admin: set `role = 'admin'` manually in Supabase → profiles table
 
 ---
 
 ## Key Gotchas for New Sessions
-1. **`as any` on inserts** — Supabase insert/update objects type as `never` with manual DB types. Always cast with `(supabase as any).from(...)`.
+1. **`as any` on inserts** — Supabase insert/update types resolve to `never`. Always `(supabase as any).from(...)`.
 2. **Select `onValueChange` type** — shadcn Select passes `string | null`. Use `(v: string | null) => { if (v) setState(v) }`.
 3. **`SelectValue` display** — Must pass explicit children to show the label.
 4. **Role from profile** — Use `(data as any)?.role` pattern.
-5. **Node PATH in PowerShell** — If `node`/`npx` not found, reload PATH: `$env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH","User")`.
+5. **Node PATH in PowerShell** — `$env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH","User")`.
 6. **Anthropic SDK streaming** — `MessageStream` has no `.textStream`. Use `for await (const event of stream)` and check `event.type === 'content_block_delta' && event.delta.type === 'text_delta'`.
-7. **Supabase Storage** — The `past-papers` bucket exists as a public bucket. ✅
-8. **Next.js 16 dynamic params** — `params` is now a `Promise`. Always `const { id } = await params`.
-9. **Vercel Root Directory** — Must be empty. The repo root is the app root.
-10. **Redeploy after env var changes** — Changing env vars in Vercel Settings does not auto-redeploy.
+7. **Supabase Storage** — `past-papers` bucket exists as public. `avatars` bucket must exist as public with INSERT/UPDATE/SELECT RLS policies. `lesson-media` bucket must be created manually.
+8. **Next.js 16 dynamic params** — `params` is a `Promise`. Always `const { id } = await params`.
+9. **Vercel Root Directory** — Must be empty.
+10. **Redeploy after env var changes** — Changing env vars in Vercel does not auto-redeploy.
 11. **School logo** — `public/logo.png`. Use `bg-white rounded-xl p-0.5` container for dark mode.
-12. **PWA manifest** — Uses Next.js 16 native `MetadataRoute.Manifest` via `src/app/manifest.ts`. Do NOT add `@ducanh2912/next-pwa`. Do NOT add `vite-plugin-pwa` (Vite plugin, incompatible with Next.js).
+12. **PWA manifest** — Uses Next.js 16 native `MetadataRoute.Manifest` via `src/app/manifest.ts`. Do NOT add `@ducanh2912/next-pwa` or `vite-plugin-pwa`.
 13. **IndexedDB** — DB name `bims-offline`, version 2, three stores: `quiz_questions`, `flashcards`, `write_queue`.
-14. **Service worker** — At `public/sw.js`. Cache name `bims-v1`. Pre-caches `['/', '/login', '/offline']`.
-15. **Admin access in proxy.ts** — `/admin/*` guard runs first. Then the existing role guards. `redirectByRole` sends admins to `/admin`.
-16. **Public routes in proxy.ts** — Full list: `['/login', '/signup', '/forgot-password', '/reset-password', '/offline']`.
-17. **Daily Challenge XP** — `progress.ts` uses the browser Supabase client and cannot be called from API routes. The Daily Challenge API route inlines the full XP logic using the server client. If the XP formula changes, update both files.
-18. **Subject colours in Tailwind** — DB-stored hex colours cannot be used as Tailwind class names (purged at build time). Use inline `style={{ backgroundColor: s.color + '20', color: s.color, borderColor: s.color + '40' }}`.
-19. **PowerShell `(auth)` paths** — PowerShell parses `(auth)` as a subexpression. Use `git add -u` for modified tracked files with parentheses in their paths.
-20. **PowerShell heredoc** — Use `@'...'@` (single-quoted here-string) for multiline commit messages.
-21. **Tutorial localStorage** — Student key: `bims_student_tutorial_v1`. Teacher key: `bims_teacher_tutorial_v1`. Auto-shows if absent. Relaunchable via `bims:launch-tutorial` custom event. Mobile sidebar opened via `bims:open-sidebar` event before modal mounts.
-22. **getTeacherContext pattern** — Called at the top of every teacher page. Returns `{ role, subjectIds, isAdmin }`. Will error if `teacher_subjects` table does not exist in the DB.
-23. **Mobile sidebar state** — Each sidebar manages its own `open` state. On mobile: `fixed inset-y-0 left-0 z-50`, translates off-screen when closed. On desktop: `md:relative md:translate-x-0`. Listens for `bims:open-sidebar` and `bims:close-sidebar` events.
-24. **Layout scroll** — Outer container uses `flex items-start min-h-screen`. `items-start` prevents flex children from being height-locked to 100vh. `main` has no `flex-1`. Without this, content taller than the viewport is unreachable.
-25. **Content Manager vs Curriculum Builder** — These are different. Content Manager (`/teacher/content`) is a form for adding MCQ questions, flashcards, and topics. Curriculum Builder (not yet built) is a structured content tree (Subject → Year → Unit → Chapter → Lesson) tied to the Pearson Edexcel specification.
+14. **Service worker** — `public/sw.js`. Cache name `bims-v1`. Pre-caches `['/', '/login', '/offline']`.
+15. **Admin access in proxy.ts** — `/admin/*` guard runs first. `redirectByRole` sends admins to `/admin`.
+16. **Public routes in proxy.ts** — Full list: `['/login', '/signup', '/forgot-password', '/reset-password', '/offline']`. `manifest.webmanifest` and `sw.js` are excluded via the matcher regex.
+17. **Daily Challenge XP** — `progress.ts` uses the browser Supabase client. The Daily Challenge API route inlines XP logic using the server client. If the XP formula changes, update both.
+18. **Subject colours in Tailwind** — DB-stored hex colours cannot be Tailwind class names. Use inline `style={{ backgroundColor: s.color + '20', ... }}`.
+19. **PowerShell `(auth)` paths** — Use `git add -u` for modified tracked files with parentheses in paths.
+20. **PowerShell heredoc** — Use `@'...'@` (single-quoted) for multiline strings. Closing `'@` must be at column 0.
+21. **Tutorial localStorage** — Student: `bims_student_tutorial_v1`. Teacher: `bims_teacher_tutorial_v1`. Relaunchable via `bims:launch-tutorial` event (now triggered from Settings → App Settings, not the Profile page directly).
+22. **getTeacherContext pattern** — Called at the top of every teacher page. Will error if `teacher_subjects` table does not exist.
+23. **Mobile sidebar state** — Each sidebar listens for `bims:open-sidebar` and `bims:close-sidebar` events.
+24. **Layout scroll** — Outer container uses `flex items-start min-h-screen`. `items-start` is critical.
+25. **Content Manager vs Curriculum Builder** — Content Manager adds individual MCQ questions/flashcards/topics. Curriculum Builder structures them into a Subject → Unit → Topic → Lesson hierarchy.
+26. **ContentBlock is a discriminated union** — Always switch on `block.type` before accessing type-specific fields. JSONB in DB, `ContentBlock[]` in TypeScript. Cast as `any` when inserting (Supabase JSONB column).
+27. **Curriculum lesson RLS** — Teachers see all lessons for their subject regardless of `is_published`. Students only see `is_published = true` AND enrolled subject. Two separate policies, OR'd by Postgres.
+28. **Lesson resource links** — Linking a question/flashcard to a lesson writes `lesson_id` on the `quiz_questions`/`flashcards` row. The linked resources tab in the lesson editor loads lazily and saves on lesson save — not in real time.
+29. **proxy.ts matcher** — The regex excludes `favicon.ico`, `sw.js`, `manifest.webmanifest`, and common image extensions. Any new public static file must be added to this regex.
+30. **Textbook import PDF size limit** — Vercel serverless functions have a ~4.5MB request body limit. Never send base64 PDF to an API route directly. Upload to Supabase Storage first, then pass the public URL to API routes which fetch it server-side.
+31. **curriculum_import_jobs resume pattern** — Outline is stored as JSONB with per-lesson `status: 'pending' | 'done' | 'failed'`. Generation loop checks `lesson.status === 'done'` and skips.
+32. **generate-lesson maxDuration** — Both `/api/curriculum/extract-outline` and `/api/curriculum/generate-lesson` set `export const maxDuration = 120`. Required for long-running Claude Sonnet PDF calls on Vercel.
+33. **flashcards/quiz_questions lesson_id** — When the import wizard inserts AI-generated questions and flashcards, it sets `lesson_id` to link them to the lesson.
+34. **No Switch in ui/** — `src/components/ui/` does NOT have `switch.tsx`. Settings uses a custom inline `Toggle` component defined in `settings-view.tsx`. Do not try to import Switch from shadcn.
+35. **Career avatar storage scheme** — `avatar_url = "bims-career:<id>"` (not a URL). `resolveAvatarSrc()` must be called before passing to `AvatarImage src`. Never pass `bims-career:*` directly as an `<img src>`.
+36. **avatars bucket RLS** — The bucket must be public AND have separate INSERT, UPDATE, SELECT policies on `storage.objects`. Without the INSERT policy, uploads fail silently with a generic error. Check `pg_policies WHERE tablename = 'objects'` to verify.
+37. **base-ui DropdownMenu width** — `dropdown-menu.tsx` sets `w-(--anchor-width)` which locks popup width to the trigger element width. Do not use it for small triggers (like avatar buttons). Use a custom dropdown with `useRef` + `useEffect` mousedown listener instead.
+38. **Admin settings basePath** — Admin settings uses `basePath="/teacher"` so that Profile link navigates to `/teacher/profile` (admins share the teacher profile page).
 
 ---
 
 ## Exact Next Steps for Next Session
-1. **CRITICAL — run in Supabase SQL editor in this order:**
-   - DROP POLICY IF EXISTS version of teacher-subjects (exact SQL in CLAUDE_HANDOFF.md above)
-   - `supabase-admin-enroll.sql`
-   - Re-assign teacher unit via `/admin/teachers`
-   - `supabase-study-timer.sql`
-   - `supabase-daily-challenge.sql`
-2. **Manual:** Supabase → Auth → URL Configuration → Site URL + `/reset-password` redirect.
-3. **Manual:** Add Anthropic billing credits.
-4. **Next feature:** Gradebook — dedicated `/teacher/gradebook` page (aggregate all students × all modules).
-5. **After Gradebook:** Discoverability fixes (quick wins for teachers already using the app).
+1. **CRITICAL — run in Supabase SQL editor:**
+   - avatars bucket RLS policies (see TODO.md for exact SQL)
+   - `supabase-curriculum.sql`
+   - `supabase-curriculum-import.sql`
+2. **CRITICAL — manual in Supabase → Storage:**
+   - Create bucket `lesson-media` → Public: YES
+   - Verify `avatars` bucket exists as public
+3. **Manual:** Supabase → Auth → URL Configuration → Site URL + `/reset-password` redirect.
+4. **Manual:** Add Anthropic billing credits (console.anthropic.com → Billing).
+5. **Verify:** Career avatar picker renders correctly on the profile page in production.
+6. **Verify:** Custom photo upload works after RLS fix.
+7. **Test:** Curriculum Builder end-to-end, then Textbook Import Wizard with a real PDF.
+8. **Next feature:** Notes on lessons — per-lesson student note-taking.
 
 ---
 
@@ -387,3 +490,16 @@ git commit -m "your message"
 git push
 # Vercel auto-deploys on push to master
 ```
+
+---
+
+## OpenAI Codex Collaboration Notes
+Codex and Claude Code can work the same repo simultaneously via separate Git branches.
+
+**Rules:**
+- Never assign overlapping files to both agents at the same time
+- Assign Codex well-scoped, self-contained features with full context in the prompt
+- Always point Codex at `CLAUDE_HANDOFF.md` and `TODO.md` first
+- Include relevant gotchas from the list above in the Codex task brief
+- Paste Codex PRs into a Claude Code session for review before merging
+- Claude Code reviews for: TypeScript correctness, Supabase patterns (`as any`), proxy.ts conventions, existing component reuse
