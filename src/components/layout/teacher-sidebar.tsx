@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { Home, PenSquare, Users, FileText, BarChart2, MessageSquare, LogOut, UserCircle, Layers, Shield, Menu, X, GraduationCap } from 'lucide-react'
+import { Home, PenSquare, Users, FileText, BarChart2, MessageSquare, LogOut, Layers, Shield, Menu, X, GraduationCap, ClipboardList, Settings } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/teacher/curriculum', label: 'Curriculum', icon: GraduationCap, tutorial: 'nav-curriculum' },
   { href: '/teacher/content', label: 'Content', icon: PenSquare, tutorial: 'nav-content' },
   { href: '/teacher/modules', label: 'Modules', icon: Layers, tutorial: 'nav-modules' },
+  { href: '/teacher/gradebook', label: 'Gradebook', icon: ClipboardList, tutorial: 'nav-gradebook' },
   { href: '/teacher/students', label: 'Students', icon: Users, tutorial: 'nav-students' },
   { href: '/teacher/exam-center', label: 'Exam Centre', icon: FileText, tutorial: 'nav-exam-center' },
   { href: '/teacher/analytics', label: 'Analytics', icon: BarChart2, tutorial: 'nav-analytics' },
@@ -122,18 +123,17 @@ export function TeacherSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
             </Link>
           )}
           <Link
-            href="/teacher/profile"
-            data-tutorial="nav-profile"
+            href="/teacher/settings"
             onClick={() => setOpen(false)}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              pathname.startsWith('/teacher/profile')
+              pathname.startsWith('/teacher/settings') || pathname.startsWith('/teacher/profile')
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent'
             )}
           >
-            <UserCircle className="w-4 h-4 shrink-0" />
-            Profile
+            <Settings className="w-4 h-4 shrink-0" />
+            Settings
           </Link>
           <button
             onClick={handleSignOut}

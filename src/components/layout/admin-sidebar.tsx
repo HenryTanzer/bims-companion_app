@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, GraduationCap, BookOpen, UserCircle, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, GraduationCap, BookOpen, LogOut, Menu, X, Settings } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -118,12 +118,17 @@ export function AdminSidebar() {
             Teacher portal
           </Link>
           <Link
-            href="/teacher/profile"
+            href="/admin/settings"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+              isActive('/admin/settings')
+                ? 'bg-primary text-primary-foreground font-medium'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+            )}
           >
-            <UserCircle className="w-4 h-4 shrink-0" />
-            Profile
+            <Settings className="w-4 h-4 shrink-0" />
+            Settings
           </Link>
           <button
             onClick={handleSignOut}

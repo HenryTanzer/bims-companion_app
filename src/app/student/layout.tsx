@@ -1,13 +1,13 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { StudentSidebar } from '@/components/layout/student-sidebar'
-import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { OfflineSync } from '@/components/shared/offline-sync'
 import { OfflineQueueSync } from '@/components/shared/offline-queue-sync'
 import { TutorialController } from '@/components/shared/tutorial-controller'
+import { UserMenu } from '@/components/shared/user-menu'
+import { ThemeToggle } from '@/components/shared/theme-toggle'
 import { Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -16,12 +16,13 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, role')
+    .select('full_name, role, avatar_url')
     .eq('id', user.id)
     .single()
 
   const name = (profile as any)?.full_name ?? 'Student'
   const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+  const avatarUrl = (profile as any)?.avatar_url ?? null
 
   return (
     <div className="flex items-start min-h-screen bg-background">
@@ -30,7 +31,6 @@ export default async function StudentLayout({ children }: { children: React.Reac
       <OfflineQueueSync />
       <TutorialController portal="student" />
       <div className="flex flex-col flex-1 min-w-0">
-        {/* Top bar */}
         <header className="flex items-center justify-between pl-14 pr-4 md:px-6 py-3 border-b border-border bg-card/50 backdrop-blur sticky top-0 z-10">
           <div />
           <div className="flex items-center gap-2">
@@ -38,11 +38,15 @@ export default async function StudentLayout({ children }: { children: React.Reac
             <Button variant="ghost" size="icon" className="h-9 w-9">
               <Bell className="h-4 w-4" />
             </Button>
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <UserMenu
+              name={name}
+              email={user.email ?? ''}
+              initials={initials}
+              role="student"
+              avatarUrl={avatarUrl}
+              settingsHref="/student/settings"
+              profileHref="/student/profile"
+            />
           </div>
         </header>
         <main className="p-4 md:p-6">

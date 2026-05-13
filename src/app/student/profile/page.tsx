@@ -8,7 +8,7 @@ export default async function StudentProfilePage() {
   if (!user) redirect('/login')
 
   const [profileRes, enrollmentsRes] = await Promise.all([
-    supabase.from('profiles').select('id, email, full_name, role, created_at').eq('id', user.id).single(),
+    supabase.from('profiles').select('id, email, full_name, role, created_at, avatar_url').eq('id', user.id).single(),
     supabase.from('enrollments').select('subject_id, subjects(id, name, color)').eq('student_id', user.id),
   ])
 

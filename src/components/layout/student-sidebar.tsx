@@ -125,25 +125,11 @@ export function StudentSidebar() {
         {/* Account + Sign out */}
         <div className="px-3 pb-4 border-t border-border pt-3 space-y-1">
           <Link
-            href="/student/profile"
-            data-tutorial="nav-profile"
-            onClick={() => setOpen(false)}
-            className={cn(
-              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              pathname.startsWith('/student/profile')
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
-            )}
-          >
-            <UserCircle className="w-4 h-4 shrink-0" />
-            Profile
-          </Link>
-          <Link
             href="/student/settings"
             onClick={() => setOpen(false)}
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-              pathname.startsWith('/student/settings')
+              pathname.startsWith('/student/settings') || pathname.startsWith('/student/profile')
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent'
             )}

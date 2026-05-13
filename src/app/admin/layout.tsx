@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AdminSidebar } from '@/components/layout/admin-sidebar'
+import { UserMenu } from '@/components/shared/user-menu'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -11,7 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, role')
+    .select('full_name, role, avatar_url')
     .eq('id', user.id)
     .single()
 
@@ -19,6 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const name = (profile as any)?.full_name ?? 'Admin'
   const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+  const avatarUrl = (profile as any)?.avatar_url ?? null
 
   return (
     <div className="flex items-start min-h-screen bg-background">
@@ -28,11 +29,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div />
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <UserMenu
+              name={name}
+              email={user.email ?? ''}
+              initials={initials}
+              role="admin"
+              avatarUrl={avatarUrl}
+              settingsHref="/admin/settings"
+              profileHref="/teacher/profile"
+            />
           </div>
         </header>
         <main className="p-4 md:p-6">
