@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import {
   Home, Brain, CreditCard, FileText,
   BarChart2, Trophy, MessageSquare, Bell, Zap, BookOpen, LogOut, UserCircle, Layers, Timer,
-  Menu, X, GraduationCap,
+  Menu, X, GraduationCap, Settings,
 } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -122,7 +122,7 @@ export function StudentSidebar() {
           })}
         </nav>
 
-        {/* Profile + Sign out */}
+        {/* Account + Sign out */}
         <div className="px-3 pb-4 border-t border-border pt-3 space-y-1">
           <Link
             href="/student/profile"
@@ -137,6 +137,19 @@ export function StudentSidebar() {
           >
             <UserCircle className="w-4 h-4 shrink-0" />
             Profile
+          </Link>
+          <Link
+            href="/student/settings"
+            onClick={() => setOpen(false)}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+              pathname.startsWith('/student/settings')
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+            )}
+          >
+            <Settings className="w-4 h-4 shrink-0" />
+            Settings
           </Link>
           <button
             onClick={handleSignOut}

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
-import { Loader2, User, Mail, ShieldCheck, Calendar, PlayCircle } from 'lucide-react'
+import { Loader2, User, Mail, ShieldCheck, Calendar } from 'lucide-react'
 
 type Subject = { id: string; name: string; color: string }
 
@@ -182,30 +182,6 @@ export function ProfileForm({
           >
             {savingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
             {savingPassword ? 'Updating…' : 'Update password'}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Relaunch tutorial */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">App Tutorial</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">
-            Take the guided tour again to learn about all the features available to you.
-          </p>
-          <Button
-            variant="outline"
-            className="shrink-0 gap-2"
-            onClick={() => {
-              localStorage.removeItem('bims_student_tutorial_v1')
-              localStorage.removeItem('bims_teacher_tutorial_v1')
-              window.dispatchEvent(new CustomEvent('bims:launch-tutorial'))
-            }}
-          >
-            <PlayCircle className="w-4 h-4" />
-            Take the tour
           </Button>
         </CardContent>
       </Card>
