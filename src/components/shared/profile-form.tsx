@@ -7,7 +7,16 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { toast } from 'sonner'
-import { Loader2, User, Mail, ShieldCheck, Calendar, Camera } from 'lucide-react'
+import { Loader2, User, Mail, ShieldCheck, Calendar, Camera, Upload } from 'lucide-react'
+import {
+  CAREER_AVATARS,
+  careerAvatarUrl,
+  isCareerAvatar,
+  getCareerDataUri,
+  getCareerIdFromUrl,
+  resolveAvatarSrc,
+} from '@/lib/career-avatars'
+import { cn } from '@/lib/utils'
 
 type Subject = { id: string; name: string; color: string }
 
@@ -37,6 +46,7 @@ export function ProfileForm({
   const [savingPassword, setSavingPassword] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatar_url ?? null)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const unchanged = name.trim() === profile.full_name
 
@@ -47,6 +57,28 @@ export function ProfileForm({
     .slice(0, 2)
     .toUpperCase()
 
+  const displaySrc = resolveAvatarSrc(avatarUrl)
+
+  async function saveAvatarUrl(url: string) {
+    const { error } = await (supabase as any)
+      .from('profiles')
+      .update({ avatar_url: url, updated_at: new Date().toISOString() })
+      .eq('id', profile.id)
+    if (error) throw error
+  }
+
+  async function handleCareerSelect(id: string) {
+    const url = careerAvatarUrl(id)
+    try {
+      await saveAvatarUrl(url)
+      setAvatarUrl(url)
+      setPickerOpen(false)
+      toast.success('Avatar updated')
+    } catch {
+      toast.error('Failed to update avatar')
+    }
+  }
+
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -54,7 +86,6 @@ export function ProfileForm({
       toast.error('Image must be under 2 MB')
       return
     }
-
     setUploadingAvatar(true)
     try {
       const ext = file.name.split('.').pop()
@@ -63,26 +94,18 @@ export function ProfileForm({
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(path, file, { upsert: true, contentType: file.type })
-
       if (uploadError) throw uploadError
 
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      const urlWithBust = `${publicUrl}?t=${Date.now()}`
 
-      // Bust cache with timestamp
-      const urlWithCacheBust = `${publicUrl}?t=${Date.now()}`
-
-      const { error: updateError } = await (supabase as any)
-        .from('profiles')
-        .update({ avatar_url: urlWithCacheBust, updated_at: new Date().toISOString() })
-        .eq('id', profile.id)
-
-      if (updateError) throw updateError
-
-      setAvatarUrl(urlWithCacheBust)
+      await saveAvatarUrl(urlWithBust)
+      setAvatarUrl(urlWithBust)
+      setPickerOpen(false)
       toast.success('Profile picture updated')
     } catch (err: any) {
       if (err?.message?.includes('Bucket not found') || err?.statusCode === '404') {
-        toast.error('Storage not configured — create an "avatars" bucket in Supabase Storage')
+        toast.error('Create an "avatars" bucket in Supabase Storage to enable photo upload')
       } else {
         toast.error('Failed to upload image')
       }
@@ -97,13 +120,8 @@ export function ProfileForm({
     if (newPassword !== confirmPassword) { toast.error('Passwords do not match'); return }
     setSavingPassword(true)
     const { error } = await supabase.auth.updateUser({ password: newPassword })
-    if (error) {
-      toast.error('Failed to update password')
-    } else {
-      toast.success('Password updated')
-      setNewPassword('')
-      setConfirmPassword('')
-    }
+    if (error) { toast.error('Failed to update password') }
+    else { toast.success('Password updated'); setNewPassword(''); setConfirmPassword('') }
     setSavingPassword(false)
   }
 
@@ -116,11 +134,8 @@ export function ProfileForm({
       .from('profiles')
       .update({ full_name: trimmed, updated_at: new Date().toISOString() })
       .eq('id', profile.id)
-    if (error) {
-      toast.error('Failed to save changes')
-    } else {
-      toast.success('Profile updated')
-    }
+    if (error) { toast.error('Failed to save changes') }
+    else { toast.success('Profile updated') }
     setSaving(false)
   }
 
@@ -128,56 +143,118 @@ export function ProfileForm({
     day: 'numeric', month: 'long', year: 'numeric',
   })
 
+  const selectedCareerId = avatarUrl && isCareerAvatar(avatarUrl)
+    ? getCareerIdFromUrl(avatarUrl)
+    : null
+
   return (
     <div className="space-y-5">
-      {/* Avatar */}
+
+      {/* Avatar + picker */}
       <Card>
-        <CardContent className="pt-6 pb-6 flex items-center gap-5">
-          <div className="relative shrink-0">
-            <Avatar className="h-16 w-16">
-              {avatarUrl && <AvatarImage src={avatarUrl} alt={profile.full_name} />}
-              <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <button
-              onClick={() => fileRef.current?.click()}
-              disabled={uploadingAvatar}
-              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90 transition-colors disabled:opacity-50"
-              aria-label="Change profile picture"
-            >
-              {uploadingAvatar
-                ? <Loader2 className="w-3 h-3 animate-spin" />
-                : <Camera className="w-3 h-3" />}
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              className="hidden"
-              onChange={handleAvatarUpload}
-            />
-          </div>
-          <div>
-            <p className="text-xl font-bold">{profile.full_name}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge variant="secondary" className="capitalize">{profile.role}</Badge>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Calendar className="w-3 h-3" />
-                Joined {joined}
-              </span>
+        <CardContent className="pt-6 pb-6">
+          <div className="flex items-center gap-5">
+            {/* Avatar */}
+            <div className="relative shrink-0">
+              <Avatar className="h-16 w-16">
+                {displaySrc && <AvatarImage src={displaySrc} alt={profile.full_name} />}
+                <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                onClick={() => setPickerOpen(v => !v)}
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90 transition-colors"
+                aria-label="Change avatar"
+              >
+                <Camera className="w-3 h-3" />
+              </button>
             </div>
-            <button
-              onClick={() => fileRef.current?.click()}
-              className="text-xs text-primary hover:underline mt-1.5 block"
-            >
-              Change photo
-            </button>
+
+            {/* Info */}
+            <div>
+              <p className="text-xl font-bold">{profile.full_name}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="secondary" className="capitalize">{profile.role}</Badge>
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  Joined {joined}
+                </span>
+              </div>
+              <button
+                onClick={() => setPickerOpen(v => !v)}
+                className="text-xs text-primary hover:underline mt-1.5 block"
+              >
+                {pickerOpen ? 'Close picker' : 'Change avatar'}
+              </button>
+            </div>
           </div>
+
+          {/* Inline avatar picker */}
+          {pickerOpen && (
+            <div className="mt-5 space-y-4">
+              <p className="text-sm font-medium text-muted-foreground">Choose a career avatar</p>
+
+              {/* Career grid */}
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-3">
+                {CAREER_AVATARS.map(career => {
+                  const isSelected = selectedCareerId === career.id
+                  return (
+                    <button
+                      key={career.id}
+                      onClick={() => handleCareerSelect(career.id)}
+                      className={cn(
+                        'flex flex-col items-center gap-1.5 p-1.5 rounded-xl transition-all',
+                        isSelected
+                          ? 'ring-2 ring-primary bg-primary/10'
+                          : 'hover:bg-accent'
+                      )}
+                    >
+                      <img
+                        src={getCareerDataUri(career.id)}
+                        alt={career.label}
+                        className="w-12 h-12 rounded-full"
+                        draggable={false}
+                      />
+                      <span className="text-[10px] text-muted-foreground text-center leading-tight">
+                        {career.label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Upload custom */}
+              <div className="border-t border-border pt-4">
+                <p className="text-sm font-medium text-muted-foreground mb-2">Or upload a custom photo</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="gap-2"
+                >
+                  {uploadingAvatar
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Upload className="w-4 h-4" />}
+                  {uploadingAvatar ? 'Uploading…' : 'Upload photo'}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1.5">PNG, JPG, WebP · max 2 MB</p>
+              </div>
+
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Edit form */}
+      {/* Account details */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Account details</CardTitle>
@@ -208,7 +285,7 @@ export function ProfileForm({
               readOnly
               className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm text-muted-foreground cursor-not-allowed"
             />
-            <p className="text-xs text-muted-foreground">Email cannot be changed here. Contact your administrator.</p>
+            <p className="text-xs text-muted-foreground">Contact your administrator to change email.</p>
           </div>
 
           <div className="space-y-1.5">

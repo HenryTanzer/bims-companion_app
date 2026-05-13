@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Settings, UserCircle, LogOut, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { resolveAvatarSrc } from '@/lib/career-avatars'
 
 type UserMenuProps = {
   name: string
@@ -56,6 +57,8 @@ export function UserMenu({
   const roleLabel =
     role === 'admin' ? 'Administrator' : role === 'teacher' ? 'Teacher' : 'Student'
 
+  const resolvedAvatar = resolveAvatarSrc(avatarUrl)
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -64,7 +67,7 @@ export function UserMenu({
         aria-label="Open user menu"
       >
         <Avatar className="h-8 w-8">
-          {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
+          {resolvedAvatar && <AvatarImage src={resolvedAvatar} alt={name} />}
           <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
             {initials}
           </AvatarFallback>
@@ -82,7 +85,7 @@ export function UserMenu({
           {/* User info header */}
           <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
             <Avatar className="h-10 w-10 shrink-0">
-              {avatarUrl && <AvatarImage src={avatarUrl} alt={name} />}
+              {resolvedAvatar && <AvatarImage src={resolvedAvatar} alt={name} />}
               <AvatarFallback className="bg-primary text-primary-foreground text-sm font-bold">
                 {initials}
               </AvatarFallback>
