@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import {
-  ChevronRight, ChevronDown, BookOpen, CheckCircle2, Circle,
-  ArrowLeft, Brain, CreditCard, Target,
+  ChevronRight, ChevronDown, CheckCircle2, Circle,
+  ArrowLeft, Brain, CreditCard, Target, NotebookPen, Save,
 } from 'lucide-react'
 import Link from 'next/link'
 import type { StudentSubject, StudentLesson } from '@/app/student/curriculum/page'
@@ -30,6 +31,33 @@ const CALLOUT_STYLES: Record<string, string> = {
 
 const CALLOUT_LABELS: Record<string, string> = {
   'tip': 'Tip', 'info': 'Note', 'warning': 'Warning', 'key-term': 'Key Term',
+}
+
+type DbError = { message?: string } | null
+type LessonNoteRow = { content: string; updated_at: string | null }
+type LessonNoteUpsert = { student_id: string; lesson_id: string; content: string; updated_at: string }
+type LessonProgressUpsert = {
+  student_id: string
+  lesson_id: string
+  is_completed: boolean
+  completed_at: string
+  manually_completed: boolean
+}
+type EqBuilder<T> = {
+  eq: (column: string, value: string) => EqBuilder<T>
+  maybeSingle: () => Promise<{ data: T | null; error: DbError }>
+}
+type LessonNotesTable = {
+  select: (columns: string) => EqBuilder<LessonNoteRow>
+  upsert: (values: LessonNoteUpsert, options: { onConflict: string }) => Promise<{ error: DbError }>
+}
+type LessonProgressTable = {
+  upsert: (values: LessonProgressUpsert, options: { onConflict: string }) => Promise<{ error: DbError }>
+}
+type StudentCurriculumDb = {
+  from: (table: 'lesson_notes') => LessonNotesTable
+} & {
+  from: (table: 'lesson_progress') => LessonProgressTable
 }
 
 function getVideoEmbedUrl(url: string): string | null {
@@ -155,7 +183,8 @@ export function CurriculumView({
   subjects: StudentSubject[]
   studentId: string
 }) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+  const db = useMemo(() => supabase as unknown as StudentCurriculumDb, [supabase])
   const [expandedUnits, setExpandedUnits] = useState<Set<string>>(new Set())
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set())
   const [selectedLesson, setSelectedLesson] = useState<StudentLesson | null>(null)
@@ -164,19 +193,74 @@ export function CurriculumView({
   )
   const [markingComplete, setMarkingComplete] = useState(false)
   const [activeSubjectId, setActiveSubjectId] = useState(subjects[0]?.id ?? '')
+  const [lessonNotes, setLessonNotes] = useState<Record<string, string>>({})
+  const [lessonNoteSavedAt, setLessonNoteSavedAt] = useState<Record<string, string | null>>({})
+  const [noteStatus, setNoteStatus] = useState<'idle' | 'loading' | 'saving' | 'saved'>('idle')
+  const [noteSavedAt, setNoteSavedAt] = useState<string | null>(null)
 
   const activeSubject = subjects.find(s => s.id === activeSubjectId)
+  const selectedLessonId = selectedLesson?.id
+
+  useEffect(() => {
+    if (!selectedLessonId) return
+    if (lessonNotes[selectedLessonId] !== undefined) return
+
+    let cancelled = false
+    const lessonId = selectedLessonId
+
+    async function loadNote() {
+      const { data, error } = await db
+        .from('lesson_notes')
+        .select('content, updated_at')
+        .eq('student_id', studentId)
+        .eq('lesson_id', lessonId)
+        .maybeSingle()
+
+      if (cancelled) return
+      if (error) {
+        toast.error('Failed to load your notes')
+        setLessonNotes(prev => ({ ...prev, [lessonId]: '' }))
+        setLessonNoteSavedAt(prev => ({ ...prev, [lessonId]: null }))
+        setNoteStatus('idle')
+        return
+      }
+
+      const updatedAt = data?.updated_at ?? null
+      setLessonNotes(prev => ({ ...prev, [lessonId]: data?.content ?? '' }))
+      setLessonNoteSavedAt(prev => ({ ...prev, [lessonId]: updatedAt }))
+      setNoteSavedAt(updatedAt)
+      setNoteStatus('idle')
+    }
+
+    loadNote()
+    return () => { cancelled = true }
+  }, [db, lessonNotes, selectedLessonId, studentId])
 
   function toggleUnit(id: string) {
-    setExpandedUnits(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setExpandedUnits(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
   }
   function toggleTopic(id: string) {
-    setExpandedTopics(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setExpandedTopics(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+  function openLesson(lesson: StudentLesson) {
+    setSelectedLesson(lesson)
+    setNoteStatus(lessonNotes[lesson.id] === undefined ? 'loading' : 'idle')
+    setNoteSavedAt(lessonNoteSavedAt[lesson.id] ?? null)
   }
 
   async function markComplete(lesson: StudentLesson, manually: boolean) {
     setMarkingComplete(true)
-    const { error } = await (supabase as any).from('lesson_progress').upsert({
+    const { error } = await db.from('lesson_progress').upsert({
       student_id: studentId,
       lesson_id: lesson.id,
       is_completed: true,
@@ -187,6 +271,30 @@ export function CurriculumView({
     setCompletedIds(prev => new Set([...prev, lesson.id]))
     toast.success('Lesson marked complete!')
     setMarkingComplete(false)
+  }
+
+  async function saveNote(lesson: StudentLesson) {
+    setNoteStatus('saving')
+    const content = lessonNotes[lesson.id] ?? ''
+    const now = new Date().toISOString()
+    const { error } = await db.from('lesson_notes').upsert({
+      student_id: studentId,
+      lesson_id: lesson.id,
+      content,
+      updated_at: now,
+    }, { onConflict: 'student_id,lesson_id' })
+
+    if (error) {
+      toast.error('Failed to save notes')
+      setNoteStatus('idle')
+      return
+    }
+
+    setNoteSavedAt(now)
+    setLessonNoteSavedAt(prev => ({ ...prev, [lesson.id]: now }))
+    setNoteStatus('saved')
+    toast.success('Notes saved')
+    window.setTimeout(() => setNoteStatus('idle'), 1600)
   }
 
   // ── Lesson reader ────────────────────────────────────────────────────────
@@ -241,6 +349,50 @@ export function CurriculumView({
           {selectedLesson.content.map((block, i) => (
             <BlockRenderer key={i} block={block} />
           ))}
+        </div>
+
+        {/* Personal notes */}
+        <div className="mt-8 rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-base font-semibold">
+                <NotebookPen className="w-4 h-4 text-primary" />
+                My Lesson Notes
+              </h2>
+              <p className="text-xs text-muted-foreground mt-1">
+                Private notes for revision. Only you can see these.
+              </p>
+            </div>
+            {noteSavedAt && (
+              <span className="text-xs text-muted-foreground shrink-0">
+                Saved {new Date(noteSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </div>
+          <Textarea
+            value={lessonNotes[selectedLesson.id] ?? ''}
+            onChange={(event) => {
+              const value = event.target.value
+              setLessonNotes(prev => ({ ...prev, [selectedLesson.id]: value }))
+              if (noteStatus === 'saved') setNoteStatus('idle')
+            }}
+            placeholder={noteStatus === 'loading' ? 'Loading your notes...' : 'Write key definitions, worked examples, questions, or revision prompts...'}
+            disabled={noteStatus === 'loading'}
+            className="min-h-36 resize-y"
+          />
+          <div className="flex items-center justify-between gap-3 mt-3">
+            <span className="text-xs text-muted-foreground">
+              {(lessonNotes[selectedLesson.id] ?? '').length.toLocaleString()} characters
+            </span>
+            <Button
+              size="sm"
+              onClick={() => saveNote(selectedLesson)}
+              disabled={noteStatus === 'loading' || noteStatus === 'saving'}
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {noteStatus === 'saving' ? 'Saving...' : noteStatus === 'saved' ? 'Saved' : 'Save Notes'}
+            </Button>
+          </div>
         </div>
 
         {/* Practice & Complete footer */}
@@ -409,7 +561,7 @@ export function CurriculumView({
                                 return (
                                   <button
                                     key={lesson.id}
-                                    onClick={() => setSelectedLesson(lesson)}
+                                    onClick={() => openLesson(lesson)}
                                     className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg bg-card border border-border/60 hover:border-primary/40 hover:bg-primary/5 transition-colors text-left"
                                   >
                                     {done
