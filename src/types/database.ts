@@ -215,6 +215,20 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['announcements']['Row'], 'id' | 'created_at'>
         Update: Partial<Database['public']['Tables']['announcements']['Insert']>
       }
+      announcement_engagements: {
+        Row: {
+          id: string
+          announcement_id: string
+          user_id: string
+          seen_at: string
+          reaction: '👍' | '✅' | '🙌' | '💡' | '❓' | null
+          reacted_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['announcement_engagements']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['announcement_engagements']['Insert']>
+      }
       study_sessions: {
         Row: {
           id: string

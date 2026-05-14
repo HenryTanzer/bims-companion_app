@@ -29,6 +29,15 @@ export default async function StudentNotificationsPage() {
     teacher_name: teacherMap[a.teacher_id] ?? 'Your teacher',
   }))
 
+  const announcementIds = enriched.map(a => a.id)
+  const { data: engagements } = announcementIds.length
+    ? await (supabase as any)
+        .from('announcement_engagements')
+        .select('announcement_id, reaction, seen_at, reacted_at')
+        .eq('user_id', user.id)
+        .in('announcement_id', announcementIds)
+    : { data: [] }
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
@@ -37,7 +46,11 @@ export default async function StudentNotificationsPage() {
           Announcements from your teachers.
         </p>
       </div>
-      <NotificationsView announcements={enriched} />
+      <NotificationsView
+        announcements={enriched}
+        engagements={(engagements ?? []) as any[]}
+        userId={user.id}
+      />
     </div>
   )
 }
