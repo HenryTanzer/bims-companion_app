@@ -16,6 +16,11 @@ import { toast } from 'sonner'
 const APP_VERSION = '2.6.0'
 const BUILD_DATE = '2026-01-28'
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>
+}
+
 function getLS(key: string, fallback: boolean): boolean {
   if (typeof window === 'undefined') return fallback
   const v = localStorage.getItem(key)
@@ -162,8 +167,10 @@ export function SettingsView({
   const [leaderboardVisible, setLeaderboardVisible] = useState(true)
 
   const [haptic, setHaptic] = useState(false)
-  const [installPrompt, setInstallPrompt] = useState<any>(null)
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstalled, setIsInstalled] = useState(false)
+  const [isIosBrowser, setIsIosBrowser] = useState(false)
+  const [installChecked, setInstallChecked] = useState(false)
 
   const isStudent = role === 'student'
 
@@ -181,17 +188,36 @@ export function SettingsView({
       )
     }
 
+    function isStandalone() {
+      return window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as Navigator & { standalone?: boolean }).standalone === true
+    }
+
+    setIsIosBrowser(
+      /iphone|ipad|ipod/i.test(window.navigator.userAgent) &&
+      !(navigator as Navigator & { standalone?: boolean }).standalone
+    )
+
     function handleBeforeInstall(e: Event) {
       e.preventDefault()
-      setInstallPrompt(e)
+      setInstallPrompt(e as BeforeInstallPromptEvent)
+      setInstallChecked(true)
     }
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
-
-    if (window.matchMedia('(display-mode: standalone)').matches) {
+    function handleAppInstalled() {
+      setInstallPrompt(null)
       setIsInstalled(true)
+      setInstallChecked(true)
     }
 
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
+    window.addEventListener('appinstalled', handleAppInstalled)
+    setIsInstalled(isStandalone())
+    window.setTimeout(() => setInstallChecked(true), 1200)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
   }, [])
 
   function vibrate() {
@@ -232,7 +258,7 @@ export function SettingsView({
 
   async function handleInstall() {
     if (!installPrompt) return
-    installPrompt.prompt()
+    await installPrompt.prompt()
     const { outcome } = await installPrompt.userChoice
     if (outcome === 'accepted') {
       setInstallPrompt(null)
@@ -265,6 +291,17 @@ export function SettingsView({
     { value: 'dark', label: 'Dark', icon: Moon },
     { value: 'system', label: 'System', icon: Monitor },
   ] as const
+
+  const installDescription = isInstalled
+    ? 'Running as installed PWA'
+    : installPrompt
+      ? 'Install on this device for quick access'
+      : isIosBrowser
+        ? 'Use Share, then Add to Home Screen'
+        : installChecked
+          ? 'If already installed, open it from your apps. Otherwise use your browser menu to install.'
+          : 'Checking whether this browser can install the app'
+  const installButtonLabel = installPrompt ? 'Install' : installChecked ? 'Browser menu' : 'Checking'
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-8">
@@ -432,7 +469,7 @@ export function SettingsView({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">Install App</p>
-                  <p className="text-xs text-muted-foreground">Add to home screen for quick access</p>
+                  <p className="text-xs text-muted-foreground leading-snug">{installDescription}</p>
                 </div>
                 <Button
                   size="sm"
@@ -441,7 +478,7 @@ export function SettingsView({
                   disabled={!installPrompt}
                   className="shrink-0"
                 >
-                  {installPrompt ? 'Install' : 'Not available'}
+                  {installButtonLabel}
                 </Button>
               </div>
             )}

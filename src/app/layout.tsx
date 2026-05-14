@@ -13,6 +13,18 @@ const geist = Geist({
 export const metadata: Metadata = {
   title: "BIMS Companion — A-Level Study Platform",
   description: "Your A-Level Study Companion for IT, Business and Biology",
+  appleWebApp: {
+    capable: true,
+    title: "BIMS Companion",
+    statusBarStyle: "black-translucent",
+  },
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({
