@@ -318,6 +318,31 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['lesson_notes']['Row'], 'id' | 'created_at' | 'updated_at'>
         Update: Partial<Database['public']['Tables']['lesson_notes']['Insert']>
       }
+      revision_plans: {
+        Row: {
+          id: string
+          student_id: string
+          subject_id: string
+          title: string
+          description: string | null
+          focus_areas: string[]
+          tasks: Array<{
+            title: string
+            detail: string
+            type: 'lesson' | 'quiz' | 'flashcards' | 'notes' | 'exam-practice' | 'study-session'
+            estimated_minutes: number
+            link?: string
+          }>
+          source: 'ai' | 'teacher'
+          status: 'active' | 'completed' | 'archived'
+          due_date: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['revision_plans']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['revision_plans']['Insert']>
+      }
     }
     Views: {}
     Functions: {}
