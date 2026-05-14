@@ -2,6 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { StudyBuddyChat } from '@/components/student/study-buddy-chat'
 
+type Subject = { id: string; name: string; color: string }
+type EnrollmentRow = { subjects: Subject | Subject[] | null }
+
 export default async function StudyBuddyPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -12,9 +15,8 @@ export default async function StudyBuddyPage() {
     .select('subject_id, subjects(id, name, color)')
     .eq('student_id', user.id)
 
-  const enrolledSubjects = (enrollments ?? [])
-    .map((e: any) => e.subjects)
-    .filter(Boolean) as { id: string; name: string; color: string }[]
+  const enrolledSubjects = ((enrollments ?? []) as EnrollmentRow[])
+    .flatMap(row => Array.isArray(row.subjects) ? row.subjects : row.subjects ? [row.subjects] : [])
 
   return (
     <div className="max-w-3xl mx-auto space-y-4">
@@ -24,7 +26,7 @@ export default async function StudyBuddyPage() {
           Your AI tutor for A-Level revision. Ask questions, work through problems, or test your understanding.
         </p>
       </div>
-      <StudyBuddyChat enrolledSubjects={enrolledSubjects} />
+      <StudyBuddyChat enrolledSubjects={enrolledSubjects} studentId={user.id} />
     </div>
   )
 }

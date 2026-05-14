@@ -1,32 +1,107 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Send, Bot, User, Loader2 } from 'lucide-react'
+import { Send, Bot, User, Loader2, Trash2 } from 'lucide-react'
 
 type Message = { role: 'user' | 'assistant'; content: string }
-
 type Subject = { id: string; name: string; color: string }
+type SavedChat = { date: string; messages: Message[] }
+
+function todayKey() {
+  return new Date().toLocaleDateString('en-CA')
+}
+
+function storageKey(studentId: string, subjectId: string) {
+  return `bims_study_buddy_chat:${studentId}:${subjectId}`
+}
+
+function isMessage(value: unknown): value is Message {
+  if (!value || typeof value !== 'object') return false
+  const maybe = value as Partial<Message>
+  return (maybe.role === 'user' || maybe.role === 'assistant') && typeof maybe.content === 'string'
+}
 
 export function StudyBuddyChat({
   enrolledSubjects,
+  studentId,
 }: {
   enrolledSubjects: Subject[]
+  studentId: string
 }) {
-  const [selectedSubject, setSelectedSubject] = useState<string>(
-    enrolledSubjects[0]?.name ?? ''
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>(
+    enrolledSubjects[0]?.id ?? ''
   )
   const [messages, setMessages] = useState<Message[]>([])
+  const [hydrated, setHydrated] = useState(false)
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  const selectedSubject = useMemo(
+    () => enrolledSubjects.find(subject => subject.id === selectedSubjectId) ?? enrolledSubjects[0],
+    [enrolledSubjects, selectedSubjectId]
+  )
+
+  useEffect(() => {
+    if (!selectedSubject) return
+
+    const key = storageKey(studentId, selectedSubject.id)
+    let cancelled = false
+
+    window.setTimeout(() => {
+      if (cancelled) return
+
+      try {
+        const raw = window.localStorage.getItem(key)
+        if (!raw) {
+          setMessages([])
+          setHydrated(true)
+          return
+        }
+
+        const saved = JSON.parse(raw) as Partial<SavedChat>
+        if (saved.date !== todayKey() || !Array.isArray(saved.messages) || !saved.messages.every(isMessage)) {
+          window.localStorage.removeItem(key)
+          setMessages([])
+          setHydrated(true)
+          return
+        }
+
+        setMessages(saved.messages)
+        setHydrated(true)
+        window.setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'auto' }), 0)
+      } catch {
+        window.localStorage.removeItem(key)
+        setMessages([])
+        setHydrated(true)
+      }
+    }, 0)
+
+    return () => { cancelled = true }
+  }, [selectedSubject, studentId])
+
+  useEffect(() => {
+    if (!hydrated || !selectedSubject) return
+
+    const key = storageKey(studentId, selectedSubject.id)
+    if (messages.length === 0) {
+      window.localStorage.removeItem(key)
+      return
+    }
+
+    window.localStorage.setItem(key, JSON.stringify({
+      date: todayKey(),
+      messages,
+    } satisfies SavedChat))
+  }, [hydrated, messages, selectedSubject, studentId])
+
   async function send() {
     const text = input.trim()
-    if (!text || streaming) return
+    if (!text || streaming || !selectedSubject) return
 
     const userMsg: Message = { role: 'user', content: text }
     const nextMessages = [...messages, userMsg]
@@ -44,7 +119,7 @@ export function StudyBuddyChat({
       const res = await fetch('/api/study-buddy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: nextMessages, subject: selectedSubject }),
+        body: JSON.stringify({ messages: nextMessages, subject: selectedSubject.name }),
         signal: ctrl.signal,
       })
 
@@ -77,8 +152,8 @@ export function StudyBuddyChat({
         })
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
       }
-    } catch (err: any) {
-      if (err?.name !== 'AbortError') {
+    } catch (err: unknown) {
+      if (!(err instanceof DOMException) || err.name !== 'AbortError') {
         setMessages(prev => {
           const updated = [...prev]
           updated[updated.length - 1] = {
@@ -104,11 +179,24 @@ export function StudyBuddyChat({
 
   function clearChat() {
     if (streaming) abortRef.current?.abort()
+    if (selectedSubject) window.localStorage.removeItem(storageKey(studentId, selectedSubject.id))
     setMessages([])
     setStreaming(false)
   }
 
+  function switchSubject(subjectId: string) {
+    if (subjectId === selectedSubjectId) return
+    if (streaming) {
+      abortRef.current?.abort()
+      setStreaming(false)
+    }
+    setInput('')
+    setHydrated(false)
+    setSelectedSubjectId(subjectId)
+  }
+
   const hasSubjects = enrolledSubjects.length > 0
+  const selectedSubjectName = selectedSubject?.name ?? ''
 
   if (!hasSubjects) {
     return (
@@ -120,39 +208,38 @@ export function StudyBuddyChat({
 
   return (
     <div className="flex flex-col gap-4 h-[calc(100vh-14rem)]">
-      {/* Subject selector */}
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-sm text-muted-foreground font-medium">Subject:</span>
-        {enrolledSubjects.map(s => (
+        {enrolledSubjects.map(subject => (
           <button
-            key={s.id}
-            onClick={() => { setSelectedSubject(s.name); clearChat() }}
+            key={subject.id}
+            onClick={() => switchSubject(subject.id)}
             className={`px-3 py-1 rounded-full text-sm font-medium border transition-colors ${
-              selectedSubject === s.name
+              selectedSubjectId === subject.id
                 ? 'bg-primary text-primary-foreground border-primary'
                 : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
             }`}
           >
-            {s.name}
+            {subject.name}
           </button>
         ))}
         {messages.length > 0 && (
           <button
             onClick={clearChat}
-            className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
+            <Trash2 className="w-3 h-3" />
             Clear chat
           </button>
         )}
       </div>
 
-      {/* Message thread */}
       <Card className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-center gap-3 text-muted-foreground">
             <Bot className="w-10 h-10 opacity-40" />
             <p className="text-sm max-w-xs">
-              Ask me anything about <span className="font-medium text-foreground">{selectedSubject}</span>.
+              Ask me anything about <span className="font-medium text-foreground">{selectedSubjectName}</span>.
               I can explain concepts, work through problems, and help you prepare for exams.
             </p>
           </div>
@@ -186,14 +273,13 @@ export function StudyBuddyChat({
         <div ref={bottomRef} />
       </Card>
 
-      {/* Input */}
       <div className="flex gap-2 items-end">
         <textarea
           ref={textareaRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={`Ask about ${selectedSubject}… (Enter to send, Shift+Enter for new line)`}
+          placeholder={`Ask about ${selectedSubjectName}... (Enter to send, Shift+Enter for new line)`}
           rows={2}
           className="flex-1 resize-none rounded-xl border border-input bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           disabled={streaming}
