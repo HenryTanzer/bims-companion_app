@@ -1,13 +1,43 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Send, Bot, User, Loader2, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { Send, Bot, User, Loader2, Trash2, NotebookPen, Save } from 'lucide-react'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 type Subject = { id: string; name: string; color: string }
 type SavedChat = { date: string; messages: Message[] }
+type DbError = { message?: string } | null
+type UnitRow = { id: string; title: string }
+type TopicRow = { id: string; unit_id: string; title: string }
+type LessonRow = { id: string; topic_id: string; title: string }
+type LessonNoteRow = { content: string | null }
+type LessonOption = { id: string; title: string; topicTitle: string; unitTitle: string }
+type ReadQuery<T> = {
+  eq: (column: string, value: string | boolean) => ReadQuery<T>
+  in: (column: string, values: string[]) => ReadQuery<T>
+  order: (column: string, options?: { ascending?: boolean }) => Promise<{ data: T[] | null; error: DbError }>
+  maybeSingle: () => Promise<{ data: T | null; error: DbError }>
+}
+type ReadTable<T> = { select: (columns: string) => ReadQuery<T> }
+type LessonNotesTable = ReadTable<LessonNoteRow> & {
+  upsert: (
+    values: { student_id: string; lesson_id: string; content: string; updated_at: string },
+    options: { onConflict: string }
+  ) => Promise<{ error: DbError }>
+}
+type StudyBuddyDb = {
+  from: (table: 'curriculum_units') => ReadTable<UnitRow>
+} & {
+  from: (table: 'curriculum_topics') => ReadTable<TopicRow>
+} & {
+  from: (table: 'curriculum_lessons') => ReadTable<LessonRow>
+} & {
+  from: (table: 'lesson_notes') => LessonNotesTable
+}
 
 function todayKey() {
   return new Date().toLocaleDateString('en-CA')
@@ -30,6 +60,8 @@ export function StudyBuddyChat({
   enrolledSubjects: Subject[]
   studentId: string
 }) {
+  const supabase = useMemo(() => createClient(), [])
+  const db = useMemo(() => supabase as unknown as StudyBuddyDb, [supabase])
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(
     enrolledSubjects[0]?.id ?? ''
   )
@@ -37,6 +69,11 @@ export function StudyBuddyChat({
   const [hydrated, setHydrated] = useState(false)
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
+  const [saveOpen, setSaveOpen] = useState(false)
+  const [lessonOptions, setLessonOptions] = useState<LessonOption[]>([])
+  const [selectedLessonId, setSelectedLessonId] = useState('')
+  const [loadingLessons, setLoadingLessons] = useState(false)
+  const [savingToNotes, setSavingToNotes] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -192,7 +229,134 @@ export function StudyBuddyChat({
     }
     setInput('')
     setHydrated(false)
+    setSaveOpen(false)
+    setSelectedLessonId('')
+    setLessonOptions([])
     setSelectedSubjectId(subjectId)
+  }
+
+  async function loadLessonOptions(subject: Subject) {
+    setLoadingLessons(true)
+    setLessonOptions([])
+    setSelectedLessonId('')
+
+    const unitsRes = await db
+      .from('curriculum_units')
+      .select('id, title')
+      .eq('subject_id', subject.id)
+      .order('position')
+
+    const units = unitsRes.data ?? []
+    const unitIds = units.map(unit => unit.id)
+    if (unitsRes.error || unitIds.length === 0) {
+      if (unitsRes.error) toast.error('Failed to load lessons')
+      setLoadingLessons(false)
+      return
+    }
+
+    const topicsRes = await db
+      .from('curriculum_topics')
+      .select('id, unit_id, title')
+      .in('unit_id', unitIds)
+      .order('position')
+
+    const topics = topicsRes.data ?? []
+    const topicIds = topics.map(topic => topic.id)
+    if (topicsRes.error || topicIds.length === 0) {
+      if (topicsRes.error) toast.error('Failed to load lessons')
+      setLoadingLessons(false)
+      return
+    }
+
+    const lessonsRes = await db
+      .from('curriculum_lessons')
+      .select('id, topic_id, title')
+      .in('topic_id', topicIds)
+      .eq('is_published', true)
+      .order('position')
+
+    if (lessonsRes.error) {
+      toast.error('Failed to load lessons')
+      setLoadingLessons(false)
+      return
+    }
+
+    const topicById = new Map(topics.map(topic => [topic.id, topic]))
+    const unitById = new Map(units.map(unit => [unit.id, unit]))
+    const options = (lessonsRes.data ?? []).map(lesson => {
+      const topic = topicById.get(lesson.topic_id)
+      const unit = topic ? unitById.get(topic.unit_id) : undefined
+      return {
+        id: lesson.id,
+        title: lesson.title,
+        topicTitle: topic?.title ?? 'Topic',
+        unitTitle: unit?.title ?? 'Unit',
+      }
+    })
+
+    setLessonOptions(options)
+    setSelectedLessonId(options[0]?.id ?? '')
+    setLoadingLessons(false)
+  }
+
+  function openSavePanel() {
+    if (!selectedSubject) return
+    const nextOpen = !saveOpen
+    setSaveOpen(nextOpen)
+    if (nextOpen && lessonOptions.length === 0) loadLessonOptions(selectedSubject)
+  }
+
+  function formatTranscript(subjectName: string) {
+    const transcript = messages
+      .filter(message => message.content.trim())
+      .map(message => `${message.role === 'user' ? 'Student' : 'Study Buddy'}: ${message.content.trim()}`)
+      .join('\n\n')
+
+    const stamp = new Date().toLocaleString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+
+    return `Study Buddy chat - ${subjectName} (${stamp})\n\n${transcript}`
+  }
+
+  async function saveChatToNotes() {
+    if (!selectedSubject || !selectedLessonId || savingToNotes) return
+
+    setSavingToNotes(true)
+    const { data, error: loadError } = await db
+      .from('lesson_notes')
+      .select('content')
+      .eq('student_id', studentId)
+      .eq('lesson_id', selectedLessonId)
+      .maybeSingle()
+
+    if (loadError) {
+      toast.error('Failed to load lesson notes')
+      setSavingToNotes(false)
+      return
+    }
+
+    const existing = data?.content?.trim() ?? ''
+    const transcript = formatTranscript(selectedSubject.name)
+    const nextContent = existing ? `${existing}\n\n---\n\n${transcript}` : transcript
+
+    const { error } = await db.from('lesson_notes').upsert({
+      student_id: studentId,
+      lesson_id: selectedLessonId,
+      content: nextContent,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'student_id,lesson_id' })
+
+    if (error) {
+      toast.error('Failed to save chat to notes')
+    } else {
+      toast.success('Chat saved to lesson notes')
+      setSaveOpen(false)
+    }
+    setSavingToNotes(false)
   }
 
   const hasSubjects = enrolledSubjects.length > 0
@@ -224,15 +388,71 @@ export function StudyBuddyChat({
           </button>
         ))}
         {messages.length > 0 && (
-          <button
-            onClick={clearChat}
-            className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Trash2 className="w-3 h-3" />
-            Clear chat
-          </button>
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={openSavePanel}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <NotebookPen className="w-3 h-3" />
+              Save to notes
+            </button>
+            <button
+              onClick={clearChat}
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Trash2 className="w-3 h-3" />
+              Clear chat
+            </button>
+          </div>
         )}
       </div>
+
+      {saveOpen && (
+        <Card className="p-4 space-y-3 border-primary/30 bg-primary/5">
+          <div className="flex items-start gap-3">
+            <NotebookPen className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">Save this chat to lesson notes</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Pick a published {selectedSubjectName} lesson. The transcript will be added to your private notes.
+              </p>
+            </div>
+          </div>
+
+          {loadingLessons ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading lessons...
+            </div>
+          ) : lessonOptions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No published lessons are available for this subject yet.
+            </p>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <select
+                value={selectedLessonId}
+                onChange={event => setSelectedLessonId(event.target.value)}
+                className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {lessonOptions.map(lesson => (
+                  <option key={lesson.id} value={lesson.id}>
+                    {lesson.unitTitle} / {lesson.topicTitle} / {lesson.title}
+                  </option>
+                ))}
+              </select>
+              <Button
+                onClick={saveChatToNotes}
+                disabled={!selectedLessonId || savingToNotes}
+                className="gap-2 shrink-0"
+              >
+                {savingToNotes ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {savingToNotes ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
