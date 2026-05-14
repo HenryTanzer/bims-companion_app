@@ -178,10 +178,11 @@ function BlockRenderer({ block }: { block: ContentBlock }) {
 }
 
 export function CurriculumView({
-  subjects, studentId,
+  subjects, studentId, initialLessonId,
 }: {
   subjects: StudentSubject[]
   studentId: string
+  initialLessonId?: string
 }) {
   const supabase = useMemo(() => createClient(), [])
   const db = useMemo(() => supabase as unknown as StudentCurriculumDb, [supabase])
@@ -200,6 +201,32 @@ export function CurriculumView({
 
   const activeSubject = subjects.find(s => s.id === activeSubjectId)
   const selectedLessonId = selectedLesson?.id
+
+  useEffect(() => {
+    if (!initialLessonId || selectedLesson) return
+
+    let cancelled = false
+    for (const subject of subjects) {
+      for (const unit of subject.units) {
+        for (const topic of unit.topics) {
+          const lesson = topic.lessons.find(l => l.id === initialLessonId)
+          if (lesson) {
+            window.setTimeout(() => {
+              if (cancelled) return
+              setActiveSubjectId(subject.id)
+              setExpandedUnits(prev => new Set([...prev, unit.id]))
+              setExpandedTopics(prev => new Set([...prev, topic.id]))
+              setSelectedLesson(lesson)
+              setNoteStatus(lessonNotes[lesson.id] === undefined ? 'loading' : 'idle')
+              setNoteSavedAt(lessonNoteSavedAt[lesson.id] ?? null)
+            }, 0)
+            return
+          }
+        }
+      }
+    }
+    return () => { cancelled = true }
+  }, [initialLessonId, lessonNoteSavedAt, lessonNotes, selectedLesson, subjects])
 
   useEffect(() => {
     if (!selectedLessonId) return

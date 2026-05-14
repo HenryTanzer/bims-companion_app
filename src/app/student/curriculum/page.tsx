@@ -40,7 +40,12 @@ export type StudentSubject = {
   linkedFlashcardCount: number
 }
 
-export default async function StudentCurriculumPage() {
+export default async function StudentCurriculumPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ lesson?: string }>
+}) {
+  const params = searchParams ? await searchParams : {}
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -143,7 +148,7 @@ export default async function StudentCurriculumPage() {
           Follow your course, read lesson content, and track your progress.
         </p>
       </div>
-      <CurriculumView subjects={studentSubjects} studentId={user.id} />
+      <CurriculumView subjects={studentSubjects} studentId={user.id} initialLessonId={params.lesson} />
     </div>
   )
 }
