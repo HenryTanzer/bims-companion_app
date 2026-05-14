@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 import {
   Home, Brain, CreditCard, FileText,
   BarChart2, Trophy, MessageSquare, Bell, Zap, BookOpen, LogOut, Layers, Timer,
-  Menu, X, GraduationCap, Settings, Search,
+  Menu, X, GraduationCap, Settings, Search, Award,
 } from 'lucide-react'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
@@ -22,6 +22,7 @@ const navItems = [
   { href: '/student/exam-center', label: 'Exam Centre', icon: FileText, tutorial: 'nav-exam-center' },
   { href: '/student/modules', label: 'Modules', icon: Layers, tutorial: 'nav-modules' },
   { href: '/student/progress', label: 'Progress', icon: BarChart2, tutorial: 'nav-progress' },
+  { href: '/student/achievements', label: 'Achievements', icon: Award, tutorial: 'nav-achievements' },
   { href: '/student/leaderboard', label: 'Leaderboard', icon: Trophy, tutorial: 'nav-leaderboard' },
   { href: '/student/study-buddy', label: 'Study Buddy', icon: MessageSquare, tutorial: 'nav-study-buddy' },
   { href: '/student/daily-challenge', label: 'Daily Challenge', icon: Zap, tutorial: 'nav-daily-challenge' },
