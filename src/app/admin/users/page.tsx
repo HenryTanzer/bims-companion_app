@@ -5,10 +5,11 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
 import { Loader2, Search, Shield, GraduationCap, User } from 'lucide-react'
+import { resolveAvatarSrc } from '@/lib/career-avatars'
 
 type UserRow = {
   id: string
@@ -16,6 +17,7 @@ type UserRow = {
   email: string
   role: 'student' | 'teacher' | 'admin'
   created_at: string
+  avatar_url: string | null
 }
 
 const ROLES = ['student', 'teacher', 'admin'] as const
@@ -37,7 +39,7 @@ export default function AdminUsersPage() {
     setLoading(true)
     const { data } = await supabase
       .from('profiles')
-      .select('id, full_name, email, role, created_at')
+      .select('id, full_name, email, role, created_at, avatar_url')
       .order('created_at', { ascending: false })
     setUsers((data ?? []) as UserRow[])
     setLoading(false)
@@ -106,11 +108,13 @@ export default function AdminUsersPage() {
           {filtered.map(u => {
             const initials = u.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
             const isSelf = u.id === currentUserId
+            const avatarSrc = resolveAvatarSrc(u.avatar_url)
             return (
               <Card key={u.id}>
                 <CardContent className="py-3">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9 shrink-0">
+                      {avatarSrc && <AvatarImage src={avatarSrc} alt={u.full_name} />}
                       <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
                         {initials}
                       </AvatarFallback>

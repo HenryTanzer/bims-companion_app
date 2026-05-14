@@ -5,15 +5,17 @@ import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { toast } from 'sonner'
 import { Loader2, BookOpen } from 'lucide-react'
+import { resolveAvatarSrc } from '@/lib/career-avatars'
 
 type Teacher = {
   id: string
   full_name: string
   email: string
   role: string
+  avatar_url: string | null
 }
 type Subject = { id: string; name: string; color: string }
 
@@ -31,7 +33,7 @@ export default function AdminTeachersPage() {
   async function load() {
     setLoading(true)
     const [teachersRes, subjectsRes, assignmentsRes] = await Promise.all([
-      (supabase as any).from('profiles').select('id, full_name, email, role').in('role', ['teacher', 'admin']).order('full_name'),
+      (supabase as any).from('profiles').select('id, full_name, email, role, avatar_url').in('role', ['teacher', 'admin']).order('full_name'),
       supabase.from('subjects').select('id, name, color').order('name'),
       (supabase as any).from('teacher_subjects').select('teacher_id, subject_id'),
     ])
@@ -87,6 +89,7 @@ export default function AdminTeachersPage() {
         <div className="space-y-3">
           {teachers.map(t => {
             const initials = t.full_name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+            const avatarSrc = resolveAvatarSrc(t.avatar_url)
             const assignedSubjectId = assignmentMap.get(t.id)
             const assignedSubject = subjects.find(s => s.id === assignedSubjectId)
             const isExpanded = expandedId === t.id
@@ -97,6 +100,7 @@ export default function AdminTeachersPage() {
                 <CardContent className="py-4 space-y-3">
                   <div className="flex items-center gap-3">
                     <Avatar className="h-9 w-9 shrink-0">
+                      {avatarSrc && <AvatarImage src={avatarSrc} alt={t.full_name} />}
                       <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
                         {initials}
                       </AvatarFallback>

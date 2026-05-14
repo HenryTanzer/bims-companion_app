@@ -2,8 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Users, GraduationCap, BookOpen, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
+import { resolveAvatarSrc } from '@/lib/career-avatars'
 
 export default async function AdminDashboard() {
   const supabase = await createClient()
@@ -19,7 +21,7 @@ export default async function AdminDashboard() {
     supabase.from('profiles').select('id', { count: 'exact' }).eq('role', 'teacher'),
     supabase.from('subjects').select('id, name, color'),
     supabase.from('quiz_attempts').select('score, total_questions'),
-    supabase.from('profiles').select('id, full_name, email, role, created_at').order('created_at', { ascending: false }).limit(8),
+    supabase.from('profiles').select('id, full_name, email, role, created_at, avatar_url').order('created_at', { ascending: false }).limit(8),
     supabase.from('enrollments').select('student_id, subject_id'),
   ])
 
@@ -109,8 +111,17 @@ export default async function AdminDashboard() {
               <p className="text-sm text-muted-foreground text-center py-4">No users yet.</p>
             ) : (
               <div className="space-y-2.5">
-                {recentUsers.map((u: any) => (
+                {recentUsers.map((u: any) => {
+                  const initials = u.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+                  const avatarSrc = resolveAvatarSrc(u.avatar_url)
+                  return (
                   <div key={u.id} className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8 shrink-0">
+                      {avatarSrc && <AvatarImage src={avatarSrc} alt={u.full_name} />}
+                      <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{u.full_name}</p>
                       <p className="text-xs text-muted-foreground truncate">{u.email}</p>
@@ -119,7 +130,8 @@ export default async function AdminDashboard() {
                       {u.role}
                     </Badge>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </CardContent>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -37,6 +38,7 @@ export function ProfileForm({
   enrolledSubjects?: Subject[]
 }) {
   const supabase = createClient()
+  const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [name, setName] = useState(profile.full_name)
@@ -74,6 +76,7 @@ export function ProfileForm({
       setAvatarUrl(url)
       setPickerOpen(false)
       toast.success('Avatar updated')
+      router.refresh()
     } catch {
       toast.error('Failed to update avatar')
     }
@@ -103,6 +106,7 @@ export function ProfileForm({
       setAvatarUrl(urlWithBust)
       setPickerOpen(false)
       toast.success('Profile picture updated')
+      router.refresh()
     } catch (err: any) {
       if (err?.message?.includes('Bucket not found') || err?.statusCode === '404') {
         toast.error('Create an "avatars" bucket in Supabase Storage to enable photo upload')
@@ -135,7 +139,10 @@ export function ProfileForm({
       .update({ full_name: trimmed, updated_at: new Date().toISOString() })
       .eq('id', profile.id)
     if (error) { toast.error('Failed to save changes') }
-    else { toast.success('Profile updated') }
+    else {
+      toast.success('Profile updated')
+      router.refresh()
+    }
     setSaving(false)
   }
 

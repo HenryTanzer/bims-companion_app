@@ -3,9 +3,10 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { StudentEnroller } from '@/components/teacher/student-enroller'
 import { getTeacherContext } from '@/lib/teacher-subjects'
+import { resolveAvatarSrc } from '@/lib/career-avatars'
 
 export default async function StudentsPage() {
   const supabase = await createClient()
@@ -16,7 +17,7 @@ export default async function StudentsPage() {
   const { subjectIds, isAdmin } = teacherCtx
 
   const [studentsRes, progressRes, attemptsRes, enrollmentsRes, subjectsRes] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, email').eq('role', 'student').order('full_name'),
+    supabase.from('profiles').select('id, full_name, email, avatar_url').eq('role', 'student').order('full_name'),
     supabase.from('user_progress').select('student_id, xp, level, streak'),
     supabase.from('quiz_attempts').select('student_id, score, total_questions'),
     supabase.from('enrollments').select('student_id, subject_id'),
@@ -88,6 +89,7 @@ export default async function StudentsPage() {
             const streak = prog?.streak ?? 0
             const avgScore = att ? Math.round((att.score / att.total) * 100) : null
             const initials = s.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+            const avatarSrc = resolveAvatarSrc(s.avatar_url)
             const enrolledIds = enrollmentMap.get(s.id) ?? []
 
             return (
@@ -95,6 +97,7 @@ export default async function StudentsPage() {
                 <CardContent className="py-4">
                   <div className="flex items-center gap-4">
                     <Avatar className="h-10 w-10 shrink-0">
+                      {avatarSrc && <AvatarImage src={avatarSrc} alt={s.full_name} />}
                       <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
                         {initials}
                       </AvatarFallback>

@@ -2,8 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Trophy, Flame, Zap, Medal } from 'lucide-react'
+import { resolveAvatarSrc } from '@/lib/career-avatars'
 
 const MEDAL_COLORS = ['text-yellow-500', 'text-slate-400', 'text-amber-600']
 const MEDAL_BG = ['bg-yellow-500/10', 'bg-slate-500/10', 'bg-amber-600/10']
@@ -35,10 +36,10 @@ export default async function LeaderboardPage() {
   const studentIds = (rows as any[]).map(r => r.student_id)
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, full_name')
+    .select('id, full_name, avatar_url')
     .in('id', studentIds)
 
-  const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p.full_name]))
+  const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]))
 
   const currentUserRank = (rows as any[]).findIndex(r => r.student_id === user.id) + 1
 
@@ -72,8 +73,10 @@ export default async function LeaderboardPage() {
         </CardHeader>
         <CardContent className="divide-y divide-border">
           {(rows as any[]).map((row, i) => {
-            const name = profileMap.get(row.student_id) ?? 'Unknown'
+            const profile = profileMap.get(row.student_id) as any
+            const name = profile?.full_name ?? 'Unknown'
             const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+            const avatarSrc = resolveAvatarSrc(profile?.avatar_url)
             const isCurrentUser = row.student_id === user.id
             const rank = i + 1
             const top3 = rank <= 3
@@ -93,6 +96,7 @@ export default async function LeaderboardPage() {
 
                 {/* Avatar */}
                 <Avatar className="h-8 w-8 shrink-0">
+                  {avatarSrc && <AvatarImage src={avatarSrc} alt={name} />}
                   <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
                     {initials}
                   </AvatarFallback>
