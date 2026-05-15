@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { TextSizeControl } from '@/components/shared/text-size-control'
 
 const APP_VERSION = '2.6.0'
 const BUILD_DATE = '2026-01-28'
@@ -339,6 +340,9 @@ export function SettingsView({
                   {label}
                 </button>
               ))}
+            </div>
+            <div className="mt-4">
+              <TextSizeControl />
             </div>
           </CardContent>
         </Card>

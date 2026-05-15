@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 import { ServiceWorkerRegister } from "@/components/shared/service-worker-register";
+import { TextSizeProvider } from "@/components/shared/text-size-control";
 import "./globals.css";
 
 const geist = Geist({
@@ -36,9 +37,11 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
-          {children}
-          <Toaster richColors position="top-right" />
-          <ServiceWorkerRegister />
+          <TextSizeProvider>
+            {children}
+            <Toaster richColors position="top-right" />
+            <ServiceWorkerRegister />
+          </TextSizeProvider>
         </ThemeProvider>
       </body>
     </html>

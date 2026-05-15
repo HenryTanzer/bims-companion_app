@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Settings, UserCircle, LogOut, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { resolveAvatarSrc } from '@/lib/career-avatars'
+import { TextSizeControl } from '@/components/shared/text-size-control'
 
 type UserMenuProps = {
   name: string
@@ -103,6 +104,10 @@ export function UserMenu({
           <div className="p-1">
             <MenuItem icon={UserCircle} label="Profile" onClick={() => navigate(profileHref)} />
             <MenuItem icon={Settings} label="Settings" onClick={() => navigate(settingsHref)} />
+          </div>
+
+          <div className="border-t border-border">
+            <TextSizeControl compact />
           </div>
 
           <div className="border-t border-border p-1">
